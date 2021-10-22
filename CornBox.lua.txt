@@ -1,0 +1,555 @@
+-- V3
+-- User-friendly settings:
+
+    
+--  Choose your AI type:
+--      'true' for standard AI, 'false' for breadboard
+            DoTakeControlFromAiAndSendYawCommand = false
+                PropulsionRequestWhileAvoiding = 1
+                PropulsionRequestToStopOrReverse = 0.1
+                PropulsionRequestForYawRight = -1                                     
+        
+--      'true' for full breadboard AI, 'false' for standard AI
+            DoSendComplexControlCommand = true
+                CCCForYawRight = 8  -- K
+                CCCForYawLeft = 4  -- H
+                CCCWhileAvoiding = 5 -- U
+                CCCToStopOrReverse = 6 -- J
+    
+--  The end of user-friendly settings! 
+
+
+--  Behavior
+            AggressiveForward = true
+            PreferredRight = true
+            ShowMessageForRunningAndWarnings = true
+
+--  Dimensions and margins:
+            SafeDistance = 50
+            ExtraDistanceForBeingFriendly = 10
+            MaximumSizeOfEnemyShip = 300
+            MaximumTimeForCoursePrediction = 10
+
+--  Leave this as 'true', unless you are building illegal melee craft or hate your own fleet
+            DoCheckForCollisionWithEnemy = true
+            DoCheckForCollisionWithFriendlies = true
+
+
+
+-- Don't touch the rest!
+
+MaximumRateOfRotation = 25
+MinimumRateOfRotation = 1
+
+YawCommandMultiplier = 10
+
+DoInitializationOnStart = true
+
+ConstructDimensions = Vector3(1, 1, 1)
+ConstructSphericalHalfSize = 0
+
+EnemySphericalHalfSize = MaximumSizeOfEnemyShip/2 
+DimensionsOfFriendlies = {}
+ConstantForConstructId = -99
+ConstantForEnemyId = -77
+
+LastFrameConstructVelocity = Vector3(0, 0, 0)
+ConstructCurrentSpeed = 10
+ConstructCurrentCourse = 0
+ConstructMaxTurnRate = MinimumRateOfRotation
+TimeNeededForConstructToReactSafely = 3
+LastFramePositionsAndVectors = {}
+RateOfRotationAndSpeed = {}
+DeclineOfRateOfRotation = 0.999        -- Redo
+DeclineOfSpeed = 0.9992
+EmaNumber = 0.1
+EmaNumberForCourse = 0.2           -- As function of speed or something !!!
+EmaNumberForTurnRate = 0.1
+ConstantForBigNumber = 999999
+
+ConstantForFramesPerSecond = 40
+
+NumberOfFramesToPredictWith = 10
+
+ConstructForwardsVelocityMagnitude = 0
+
+function UpdateRotationAndSpeed(constructVelocity, newPositionsAndVectors)                             -- Need fix for angle at low speed
+    ConstructCurrentSpeed = math.max(1, ConstructCurrentSpeed * (1 - EmaNumber) + constructVelocity.magnitude * EmaNumber)            -- Reverse ??
+    ConstructCurrentCourse = ConstructCurrentCourse * (1 - EmaNumberForCourse)
+            + Vector3.SignedAngle(constructVelocity, LastFrameConstructVelocity, Vector3.up) * ConstantForFramesPerSecond * EmaNumberForCourse
+    ConstructMaxTurnRate = math.min( math.max(MinimumRateOfRotation, ConstructMaxTurnRate * DeclineOfRateOfRotation,        -- Unsavory fluctuation from roll or something !!!!
+            ConstructMaxTurnRate * (1 - EmaNumberForTurnRate) 
+            + math.abs(Vector3.SignedAngle(constructVelocity, LastFrameConstructVelocity, Vector3.up) * ConstantForFramesPerSecond) * EmaNumberForTurnRate
+            ), MaximumRateOfRotation, math.abs(ConstructCurrentCourse) * 2)            --??
+
+    TimeNeededForConstructToReactSafely = math.min(math.max(90 / ConstructMaxTurnRate, 1), MaximumTimeForCoursePrediction)
+    
+    local newRateOfRotationAndSpeed = {}
+    for id, data in pairs(newPositionsAndVectors) do
+        if not LastFramePositionsAndVectors[id] then
+            RateOfRotationAndSpeed[id] = {Id = data.Id, CurrentCourse = 0, MaxSpeed = 1}
+            LastFramePositionsAndVectors[id] = {Id = data.Id, Position = data.Position, Velocity = data.Velocity}
+        end        
+        newRateOfRotationAndSpeed[id] = {
+            Id = data.Id,           
+            CurrentCourse = RateOfRotationAndSpeed[id].CurrentCourse * (1 - EmaNumberForCourse)
+                    + Vector3.SignedAngle(data.Velocity, LastFramePositionsAndVectors[id].Velocity, Vector3.up) * ConstantForFramesPerSecond * EmaNumberForCourse,
+            MaxSpeed = math.max(1, RateOfRotationAndSpeed[id].MaxSpeed * DeclineOfSpeed,
+                    RateOfRotationAndSpeed[id].MaxSpeed * (1 - EmaNumber) + data.Velocity.magnitude * EmaNumber)
+        }
+    end
+    RateOfRotationAndSpeed = newRateOfRotationAndSpeed
+    LastFrameConstructVelocity = constructVelocity
+end
+
+
+function GetSphericalHalfSize(id)
+    if id==ConstantForConstructId then
+        return ConstructSphericalHalfSize
+    end
+    if id==ConstantForEnemyId then
+        return EnemySphericalHalfSize
+    end
+
+    if DimensionsOfFriendlies[id]~=nil then
+        return DimensionsOfFriendlies[id].MaxSphericalHalfSize                   -- check id for the rest
+    end
+    
+    DBG("No size for Id "..id)
+    return EnemySphericalHalfSize
+    
+end
+
+
+function GetDistanceToObstacleSphere (constructPosition, obstaclePosition, obstacleId)
+    return (constructPosition - obstaclePosition).magnitude - GetSphericalHalfSize(ConstantForConstructId) - GetSphericalHalfSize(obstacleId)      -- Skip check for construct if not used in full
+end
+
+
+function CalculateFlybyDistanceAndTime(constructPosition, constructVelocity, obstaclePosition, obstacleVelocity)   
+    local currentSphericalDistance = GetDistanceToObstacleSphere(constructPosition, obstaclePosition, ConstantForEnemyId)           -- Add id for frd     
+    local distanceVector = constructPosition - obstaclePosition    
+    local velocityProjection = Vector3.Dot(constructVelocity - obstacleVelocity, distanceVector) / distanceVector.magnitude
+    local timeToCloseTheDistance = (currentSphericalDistance / velocityProjection) * -1 
+    local predictedPositionForObstacle = obstaclePosition + obstacleVelocity * timeToCloseTheDistance            
+    local predictedPositionForConstruct = constructPosition + constructVelocity * timeToCloseTheDistance
+    local predictedDistance = GetDistanceToObstacleSphere(predictedPositionForConstruct, predictedPositionForObstacle, ConstantForEnemyId)
+    return predictedDistance, timeToCloseTheDistance, currentSphericalDistance 
+end
+
+
+function FindMinimalFlybyDistanceAndTime(constructPosition, constructVelocity, positionsAndVectors)
+    local minDistancePredicted = ConstantForBigNumber
+    local minTimePredicted = ConstantForBigNumber
+    local minDistance = ConstantForBigNumber    
+    local closestObstacleId = 0 
+    for id, data in pairs(positionsAndVectors) do
+            local distancePrediction, timePrediction, currentSphericalDistance = CalculateFlybyDistanceAndTime(
+                                                            constructPosition, constructVelocity,
+                                                            data.Position, data.Velocity)
+        if timePrediction < minTimePredicted and timePrediction > 0 then
+            minDistancePredicted = distancePrediction
+            minTimePredicted = timePrediction
+        end
+        if currentSphericalDistance < minDistance then
+            minDistance = currentSphericalDistance
+            closestObstacleId = id
+        end
+     --   DBG("FB: id: "..id.." distancePrediction: "..distancePrediction.." timePrediction:"..timePrediction.." currentSphericalDistance: "..currentSphericalDistance)
+    end
+    return minDistancePredicted, minTimePredicted, minDistance, closestObstacleId                     
+end
+
+
+function PredictFutureCircularPosition(travelTime, currentPosition, velocityVector, speed, rateOfTurn, currentCourse)           -- V3 math are FUUUCKING SLOOOOW!
+
+    local timeToChangeCourse = math.abs((currentCourse - rateOfTurn) / rateOfTurn)
+    local partialCourseChange = (rateOfTurn * (travelTime / timeToChangeCourse) + currentCourse) / 2
+
+    if travelTime<timeToChangeCourse then
+      --  return currentPosition + Quaternion.AngleAxis(medianCourse, Vector3.up) * velocityVector * (travelTime * 0.8)       -- Am i happy with this? 
+        return currentPosition + Quaternion.AngleAxis(partialCourseChange, Vector3.up) * velocityVector.normalized * speed * (travelTime * 0.8)
+    end
+    
+    local medianCourse = (rateOfTurn + currentCourse) / 2
+    
+    travelTime = travelTime - timeToChangeCourse
+    local vectorFromStartToCenter = Quaternion(0, 0.70710676908493, 0, 0.70710676908493) * velocityVector.normalized * (speed * 180 / rateOfTurn /  math.pi)
+    local vectorFromCenterToPredictionPoint = Quaternion.AngleAxis(rateOfTurn * travelTime, Vector3.up) * (vectorFromStartToCenter * -1)
+    return currentPosition + Quaternion.AngleAxis(medianCourse, Vector3.up) * velocityVector * timeToChangeCourse
+            + vectorFromStartToCenter + vectorFromCenterToPredictionPoint
+end
+
+
+function CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafely, numberOfFrames, constructPosition, constructVelocity, currentPositionsAndVectors)
+    local constructSpeed = ConstructCurrentSpeed
+    local constructCurrentCourse = ConstructCurrentCourse * -1
+    local constructHardRightCourse = ConstructMaxTurnRate
+    local constructHardLeftCourse = ConstructMaxTurnRate * -1
+
+    DBG("L: "..constructHardLeftCourse.." C: "..constructCurrentCourse.." R: "..constructHardRightCourse)
+
+    local minCurrentDistanceCurrentCourse, minFinalCurrentDistanceCurrentCourse = ConstantForBigNumber, ConstantForBigNumber
+    local minCurrentDistanceHardRightCourse, minFinalCurrentDistanceHardRightCourse = ConstantForBigNumber, ConstantForBigNumber
+    local minCurrentDistanceHardLeftCourse, minFinalCurrentDistanceHardLeftCourse = ConstantForBigNumber, ConstantForBigNumber
+
+    local averageDistanceCC, averageDistanceHR, averageDistanceHL = 0, 0, 0
+    
+    for currentFrame = 1, numberOfFrames do
+        local timeFrame = timeNeededToReactSafely / numberOfFrames * currentFrame
+
+        local constructPositionCurrentCourse = PredictFutureCircularPosition(
+                timeFrame, constructPosition, constructVelocity, constructSpeed, constructCurrentCourse, constructCurrentCourse)
+        local constructPositionHardRightCourse = PredictFutureCircularPosition(
+                timeFrame, constructPosition, constructVelocity, constructSpeed, constructHardRightCourse, constructCurrentCourse)
+        local constructPositionHardLeftCourse = PredictFutureCircularPosition(
+                timeFrame, constructPosition, constructVelocity, constructSpeed, constructHardLeftCourse, constructCurrentCourse)
+
+        for id, data in pairs(currentPositionsAndVectors) do
+            local currentCourse = Get_TurnRate(id)
+            local obstaclePosition = PredictFutureCircularPosition (timeFrame, data.Position, data.Velocity, Get_Speed(id), currentCourse, currentCourse)
+            local fakeId = data.Id
+
+            local currentDistanceCurrentCourse = GetDistanceToObstacleSphere(constructPositionCurrentCourse, obstaclePosition, fakeId)
+            local currentDistanceHardRightCourse = GetDistanceToObstacleSphere(constructPositionHardRightCourse, obstaclePosition, fakeId)
+            local currentDistanceHardLeftCourse = GetDistanceToObstacleSphere(constructPositionHardLeftCourse, obstaclePosition, fakeId)
+
+            averageDistanceCC = averageDistanceCC + currentDistanceCurrentCourse                        -- Ignore by distance
+            averageDistanceHR = averageDistanceHR + currentDistanceHardRightCourse
+            averageDistanceHL = averageDistanceHL + currentDistanceHardLeftCourse
+            
+            if currentFrame == numberOfFrames then
+                if currentDistanceCurrentCourse < minFinalCurrentDistanceCurrentCourse then
+                    minFinalCurrentDistanceCurrentCourse = currentDistanceCurrentCourse
+                end
+                if currentDistanceHardRightCourse < minFinalCurrentDistanceHardRightCourse then
+                    minFinalCurrentDistanceHardRightCourse = currentDistanceHardRightCourse
+                end
+                if currentDistanceHardLeftCourse < minFinalCurrentDistanceHardLeftCourse then
+                    minFinalCurrentDistanceHardLeftCourse = currentDistanceHardLeftCourse
+                end
+            else
+                if currentDistanceCurrentCourse < minCurrentDistanceCurrentCourse then
+                    minCurrentDistanceCurrentCourse = currentDistanceCurrentCourse
+                end
+                if currentDistanceHardRightCourse < minCurrentDistanceHardRightCourse then
+                    minCurrentDistanceHardRightCourse = currentDistanceHardRightCourse
+                end
+                if currentDistanceHardLeftCourse < minCurrentDistanceHardLeftCourse then
+                    minCurrentDistanceHardLeftCourse = currentDistanceHardLeftCourse
+                end
+            end
+
+        end
+
+    end
+
+    averageDistanceCC = averageDistanceCC / numberOfFrames
+    averageDistanceHR = averageDistanceHR / numberOfFrames
+    averageDistanceHL = averageDistanceHL / numberOfFrames
+
+    DBG("minCurrentDistanceHardLeftCourse: "..minCurrentDistanceHardLeftCourse.." minCurrentDistanceCurrentCourse: "..minCurrentDistanceCurrentCourse.." minCurrentDistanceHardRightCourse: "..minCurrentDistanceHardRightCourse)
+    DBG("minFinalCurrentDistanceHardLeftCourse: "..minFinalCurrentDistanceHardLeftCourse.." minFinalCurrentDistanceCurrentCourse: "..minFinalCurrentDistanceCurrentCourse.." minFinalCurrentDistanceHardRightCourse: "..minFinalCurrentDistanceHardRightCourse)
+    DBG("averageDistanceHL: "..averageDistanceHL.." averageDistanceCC: "..averageDistanceCC.." averageDistanceHR: "..averageDistanceHR)
+
+    
+    local propulsionRequestForward = PropulsionRequestWhileAvoiding
+    local PropulsionRequestReverse = PropulsionRequestToStopOrReverse
+    local YawDirectionSign = 1
+    if ConstructForwardsVelocityMagnitude < 0 then                                          -- Redo!
+        propulsionRequestForward = PropulsionRequestToStopOrReverse
+        PropulsionRequestReverse = PropulsionRequestWhileAvoiding
+        YawDirectionSign = -1
+    end
+    
+    if AggressiveForward and minFinalCurrentDistanceCurrentCourse > SafeDistance and (minCurrentDistanceCurrentCourse > SafeDistance or (minCurrentDistanceCurrentCourse > 0 and averageDistanceCC > averageDistanceHL and averageDistanceCC > averageDistanceHR))
+       --     and minCurrentDistanceCurrentCourse > minCurrentDistanceHardLeftCourse and minCurrentDistanceCurrentCourse > minCurrentDistanceHardRightCourse 
+    then    
+        DBG("It's fine!")
+        return 0, 0
+    end
+    
+    if PreferredRight and minFinalCurrentDistanceHardRightCourse > SafeDistance and minCurrentDistanceHardRightCourse > 0 
+        and averageDistanceHR > averageDistanceHL
+    then
+        DBG("Preferred Right.")
+        return PropulsionRequestForYawRight * YawDirectionSign, propulsionRequestForward
+    end
+
+    if minFinalCurrentDistanceHardRightCourse > minFinalCurrentDistanceHardLeftCourse and
+            minFinalCurrentDistanceHardRightCourse > SafeDistance and
+            minCurrentDistanceHardRightCourse > 0 then
+        DBG("Go right. Safe.")
+        return PropulsionRequestForYawRight * YawDirectionSign, propulsionRequestForward
+    end
+
+    if minFinalCurrentDistanceHardLeftCourse > minFinalCurrentDistanceHardRightCourse and
+            minFinalCurrentDistanceHardLeftCourse > SafeDistance and
+            minCurrentDistanceHardLeftCourse > 0 then
+        DBG("Go left. Safe.")
+        return PropulsionRequestForYawRight * -1 * YawDirectionSign, propulsionRequestForward
+    end
+
+    if minFinalCurrentDistanceHardRightCourse < 0 and minFinalCurrentDistanceHardLeftCourse < 0 then
+        if minCurrentDistanceHardRightCourse > minCurrentDistanceHardLeftCourse then
+            DBG("Right. Unsafe!")
+            return PropulsionRequestForYawRight * YawDirectionSign, propulsionRequestForward
+        else
+            DBG("Left. Unsafe!")
+            return PropulsionRequestForYawRight * -1 * YawDirectionSign, propulsionRequestForward     
+        end
+    end
+ 
+    if minFinalCurrentDistanceHardRightCourse > minFinalCurrentDistanceHardLeftCourse
+            and minCurrentDistanceHardRightCourse > minCurrentDistanceHardLeftCourse
+    then
+        DBG("Right. Unsafe 2!")
+        return PropulsionRequestForYawRight * YawDirectionSign, propulsionRequestForward
+    end
+    if minFinalCurrentDistanceHardLeftCourse > minFinalCurrentDistanceHardRightCourse
+            and minCurrentDistanceHardLeftCourse > minCurrentDistanceHardRightCourse
+    then    
+        DBG("Left. Unsafe 2!")
+         return PropulsionRequestForYawRight * -1 * YawDirectionSign, propulsionRequestForward
+        
+    end
+
+    if  averageDistanceHR > averageDistanceHL
+            and minCurrentDistanceHardRightCourse > minCurrentDistanceHardLeftCourse then
+        DBG("Right. Unsafe 3 !")
+        return PropulsionRequestForYawRight * YawDirectionSign, propulsionRequestForward    
+    end
+    if averageDistanceHL > averageDistanceHR
+            and minCurrentDistanceHardLeftCourse > minCurrentDistanceHardRightCourse then
+        DBG("Left. Unsafe 3 !")
+        return PropulsionRequestForYawRight * -1 * YawDirectionSign, propulsionRequestForward
+    end
+    
+    if minFinalCurrentDistanceHardRightCourse > minFinalCurrentDistanceHardLeftCourse then
+        DBG("Attaque! Right.")
+        return PropulsionRequestForYawRight * YawDirectionSign, PropulsionRequestReverse
+    else
+        DBG("Attaque! Left.")
+        return PropulsionRequestForYawRight * -1 * YawDirectionSign, PropulsionRequestReverse
+    end
+
+    return PropulsionRequestForYawRight * YawDirectionSign, PropulsionRequestReverse
+end
+
+
+function DetectAndAvoidCollision()
+    local constructPosition = I:GetConstructCenterOfMass()
+    local constructVelocity = I:GetVelocityVector()
+
+    constructVelocity.y=0                                                             -- Should it stay or should it go ??
+    
+    ConstructForwardsVelocityMagnitude = I:GetForwardsVelocityMagnitude()
+    local newPositionsAndVectors = {}                                 
+                                                                        
+    if DoCheckForCollisionWithFriendlies then
+        for i = 0, I:GetFriendlyCount() - 1, 1 do
+            local infoForObstacle = I:GetFriendlyInfo(i)
+            infoForObstacle.Velocity.y=0
+            newPositionsAndVectors[infoForObstacle.Id] = {
+                Id = infoForObstacle.Id,
+                Position = infoForObstacle.CenterOfMass,
+                Velocity = infoForObstacle.Velocity
+            }
+        end
+    end
+
+    if DoCheckForCollisionWithEnemy then
+        for i = 0, I:GetNumberOfTargets(0) - 1, 1 do
+            local infoForObstacle = I:GetTargetInfo(0, i)
+            infoForObstacle.Velocity.y=0
+            newPositionsAndVectors[infoForObstacle.Id] = {                                
+                Id = ConstantForEnemyId, --infoForObstacle.Id,                           -- Deplorable! 
+                Position = infoForObstacle.Position,
+                Velocity = infoForObstacle.Velocity
+            }
+        end
+    end
+
+    DBG("Obstacles in play: "..GetLengthOfTable(newPositionsAndVectors))
+
+    UpdateRotationAndSpeed(constructVelocity, newPositionsAndVectors)                                       -- Need some love
+    LastFramePositionsAndVectors = newPositionsAndVectors
+    
+    local minDistancePredicted, minTimePredicted, currentDistance, closestObstacleId
+        =  FindMinimalFlybyDistanceAndTime(constructPosition, constructVelocity, newPositionsAndVectors)
+
+    local timeNeededToReactSafely = TimeNeededForConstructToReactSafely * 3
+    local distanceNeededToReactSafely = ConstructCurrentSpeed * TimeNeededForConstructToReactSafely  
+    local numberOfFrames = NumberOfFramesToPredictWith
+    DBG("timeNeededToReactSafely: "..timeNeededToReactSafely.." distanceNeededToReactSafely: "..distanceNeededToReactSafely.." ConstructCurrentSpeed: "..ConstructCurrentSpeed)
+    DBG("minDistancePredicted: "..minDistancePredicted.."  minTimePredicted: "..minTimePredicted.." currentDistance: "..currentDistance)
+
+    if currentDistance < 0 then    
+        local obstacleRelativePosition = constructPosition - newPositionsAndVectors[closestObstacleId].Position
+                + newPositionsAndVectors[closestObstacleId].Velocity.normalized * (GetSphericalHalfSize(closestObstacleId) * 0.3)
+        local signForSide = constructVelocity.x * obstacleRelativePosition.z - constructVelocity.z * obstacleRelativePosition.x
+    
+        local propulsionRequestForward = PropulsionRequestWhileAvoiding
+        local PropulsionRequestReverse = PropulsionRequestToStopOrReverse
+        local YawDirectionSign = 1
+        if ConstructForwardsVelocityMagnitude < 0 then                                   --And again - Redo!
+            propulsionRequestForward = PropulsionRequestToStopOrReverse
+            PropulsionRequestReverse = PropulsionRequestWhileAvoiding
+            YawDirectionSign = -1
+        end        
+                
+        if signForSide > 0 then
+            DBG ("All is lost! Left! "..currentDistance)
+            return PropulsionRequestForYawRight * -1 * YawDirectionSign, PropulsionRequestReverse
+        else
+            DBG ("All is lost! Right! "..currentDistance)
+            return PropulsionRequestForYawRight * YawDirectionSign, PropulsionRequestReverse
+        end
+        
+    elseif false or (currentDistance < SafeDistance ) or (currentDistance < distanceNeededToReactSafely and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely) or (minDistancePredicted < SafeDistance and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely) then
+        
+        return CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafely, numberOfFrames, constructPosition, constructVelocity, newPositionsAndVectors)
+        
+    end
+
+    DBG ("All good. "..currentDistance) 
+
+    return 0, 0
+end
+
+
+function DoStuff (desiredYaw, desiredForward)
+
+    if DoTakeControlFromAiAndSendYawCommand then
+        if desiredYaw~=0 then
+            I:TellAiThatWeAreTakingControl()
+            I:RequestControl(0, 0, desiredYaw * YawCommandMultiplier)             -- Redo   
+            I:RequestControl(0, 8, desiredForward)
+        end     
+
+    end
+
+    if DoSendComplexControlCommand then
+        if desiredYaw==PropulsionRequestForYawRight * -1 then I:RequestComplexControllerStimulus(CCCForYawLeft) end
+        if desiredYaw==PropulsionRequestForYawRight then I:RequestComplexControllerStimulus(CCCForYawRight) end
+        
+        if desiredForward==PropulsionRequestWhileAvoiding then I:RequestComplexControllerStimulus(CCCWhileAvoiding) end
+        if desiredForward==PropulsionRequestToStopOrReverse then I:RequestComplexControllerStimulus(CCCToStopOrReverse) end
+    end
+
+    DBG(Mathf.Round(I:GetGameTime())..": DesiredYaw = "..desiredYaw.." desiredForward: "..desiredForward)
+end
+
+
+function DoInputSanityCheck()
+    local msg = ""
+    if SafeDistance<0 then
+        SafeDistance = 10
+        msg = msg .. " SafeDistance! "
+    end
+    if MaximumSizeOfEnemyShip<50 then
+        MaximumSizeOfEnemyShip = 50
+        msg = msg .. " MaximumSizeOfEnemyShip! "
+    end
+    if CCCForYawRight==CCCForYawLeft then
+        msg = msg .. " CCCForYawRight==CCCForYawLeft - not fixed! "
+    end
+    if MaximumTimeForCoursePrediction<0 then
+        MaximumTimeForCoursePrediction = 10
+        msg = msg .. " MaximumTimeForCoursePrediction! "
+    end
+    if ConstantForConstructId==ConstantForEnemyId then
+        msg = msg .. " Nuts - not fixed! "
+    end
+    return msg
+end
+
+
+function StartupInitialization()
+    I:ClearLogs()
+    if InTheFightWithCornHollio then
+        desiredSpeed = 0
+        EngageSelfDestruct(true)
+    end
+    
+    DoInitializationOnStart = false
+    
+    ConstructDimensions = ConstructDimensions + I:GetConstructMaxDimensions() - I:GetConstructMinDimensions()
+    ConstructSphericalHalfSize = math.max(ConstructDimensions.x, ConstructDimensions.y, ConstructDimensions.z) / 2
+    
+    for i = 0, I:GetFriendlyCount() - 1, 1 do
+        local FriendlyInfo = I:GetFriendlyInfo(i)
+        local friendlySize = FriendlyInfo.PositiveSize - FriendlyInfo.NegativeSize + Vector3(1, 1, 1)
+        DimensionsOfFriendlies[FriendlyInfo.Id] = {
+            Id = FriendlyInfo.Id,
+            BoundingBox = friendlySize,
+            MaxSphericalHalfSize = math.max(friendlySize.x, friendlySize.y, friendlySize.z) / 2 + ExtraDistanceForBeingFriendly
+        }
+    end
+
+    local msg = DoInputSanityCheck()
+
+    if ShowMessageForRunningAndWarnings then
+        I:LogToHud("CornBox is running on ".. I:GetBlueprintName().." (Id: ".. I:GetUniqueId().."). "..msg)        
+    end
+    
+end
+
+
+function Update(ILocal)
+    I=ILocal
+    I:ClearLogs()
+
+    if DoInitializationOnStart then                         -- add support for new spawns and test for sanity
+        StartupInitialization()                                 -- And where are missing friendly size come from?
+    end
+    
+    local success, desiredYaw, desiredForward
+    
+    for _ = 1, 1 do
+   --     desiredYaw, desiredForward = DetectAndAvoidCollision()
+        success, desiredYaw, desiredForward = pcall(DetectAndAvoidCollision)                -- Is it fast?
+        
+    end
+
+    if not success then
+        DBG("!!Error!!")
+        desiredYaw = 0
+        desiredForward = 0                                                                  -- Or stop?
+    end
+    
+    if desiredYaw~=0 or desiredForward~=0 then
+        DoStuff(desiredYaw, desiredForward)
+    else
+        DBG(Mathf.Round(I:GetGameTime())..": No collision to avoid.")
+    end
+    
+end
+
+
+function DBG(string)
+    I:Log(string)
+end
+
+
+function PV(v)
+    return " x: "..v.x.."  y: "..v.y.."  z: "..v.z.."   mg: "..v.magnitude
+end
+
+
+function GetLengthOfTable(table)
+    local count = 0
+    for _ in pairs(table) do
+        count = count + 1
+    end
+    return count
+end
+
+
+function Get_Speed (id)
+    return RateOfRotationAndSpeed[id].MaxSpeed
+end                                                                         -- Kill it?
+function Get_TurnRate (id)
+    return RateOfRotationAndSpeed[id].CurrentCourse
+end
+
