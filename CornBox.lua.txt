@@ -4,13 +4,13 @@
     
 --  Choose your AI type:
 --      'true' for standard AI, 'false' for breadboard
-            DoTakeControlFromAiAndSendYawCommand = false
+            DoTakeControlFromAiAndSendYawCommand = true
                 PropulsionRequestWhileAvoiding = 1
                 PropulsionRequestToStopOrReverse = 0.1
                 PropulsionRequestForYawRight = -1                                     
         
 --      'true' for full breadboard AI, 'false' for standard AI
-            DoSendComplexControlCommand = true
+            DoSendComplexControlCommand = false
                 CCCForYawRight = 8  -- K
                 CCCForYawLeft = 4  -- H
                 CCCWhileAvoiding = 5 -- U
