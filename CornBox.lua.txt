@@ -122,7 +122,8 @@ end
 
 
 function GetDistanceToObstacleSphere (constructPosition, obstaclePosition, obstacleId)
-    return (constructPosition - obstaclePosition).magnitude - GetSphericalHalfSize(ConstantForConstructId) - GetSphericalHalfSize(obstacleId)      -- Skip check for construct if not used in full
+    return (constructPosition - obstaclePosition).magnitude - GetSphericalHalfSize(ConstantForConstructId) - GetSphericalHalfSize(obstacleId)
+    -- Skip check for construct if not used in full
 end
 
 
@@ -248,9 +249,15 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafe
     averageDistanceHR = averageDistanceHR / numberOfFrames
     averageDistanceHL = averageDistanceHL / numberOfFrames
 
-    DBG("minCurrentDistanceHardLeftCourse: "..minCurrentDistanceHardLeftCourse.." minCurrentDistanceCurrentCourse: "..minCurrentDistanceCurrentCourse.." minCurrentDistanceHardRightCourse: "..minCurrentDistanceHardRightCourse)
-    DBG("minFinalCurrentDistanceHardLeftCourse: "..minFinalCurrentDistanceHardLeftCourse.." minFinalCurrentDistanceCurrentCourse: "..minFinalCurrentDistanceCurrentCourse.." minFinalCurrentDistanceHardRightCourse: "..minFinalCurrentDistanceHardRightCourse)
-    DBG("averageDistanceHL: "..averageDistanceHL.." averageDistanceCC: "..averageDistanceCC.." averageDistanceHR: "..averageDistanceHR)
+    DBG("minCurrentDistanceHardLeftCourse: "..minCurrentDistanceHardLeftCourse
+            .." minCurrentDistanceCurrentCourse: "..minCurrentDistanceCurrentCourse
+            .." minCurrentDistanceHardRightCourse: "..minCurrentDistanceHardRightCourse)
+    DBG("minFinalCurrentDistanceHardLeftCourse: "..minFinalCurrentDistanceHardLeftCourse
+            .." minFinalCurrentDistanceCurrentCourse: "..minFinalCurrentDistanceCurrentCourse
+            .." minFinalCurrentDistanceHardRightCourse: "..minFinalCurrentDistanceHardRightCourse)
+    DBG("averageDistanceHL: "..averageDistanceHL
+            .." averageDistanceCC: "..averageDistanceCC
+            .." averageDistanceHR: "..averageDistanceHR)
 
     
     local propulsionRequestForward = PropulsionRequestWhileAvoiding
@@ -262,7 +269,9 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafe
         YawDirectionSign = -1
     end
     
-    if AggressiveForward and minFinalCurrentDistanceCurrentCourse > SafeDistance and (minCurrentDistanceCurrentCourse > SafeDistance or (minCurrentDistanceCurrentCourse > 0 and averageDistanceCC > averageDistanceHL and averageDistanceCC > averageDistanceHR))
+    if AggressiveForward 
+            and minFinalCurrentDistanceCurrentCourse > SafeDistance and (minCurrentDistanceCurrentCourse > SafeDistance
+            or (minCurrentDistanceCurrentCourse > 0 and averageDistanceCC > averageDistanceHL and averageDistanceCC > averageDistanceHR))
        --     and minCurrentDistanceCurrentCourse > minCurrentDistanceHardLeftCourse and minCurrentDistanceCurrentCourse > minCurrentDistanceHardRightCourse 
     then    
         DBG("It's fine!")
@@ -406,7 +415,10 @@ function DetectAndAvoidCollision()
             return PropulsionRequestForYawRight * YawDirectionSign, PropulsionRequestReverse
         end
         
-    elseif false or (currentDistance < SafeDistance ) or (currentDistance < distanceNeededToReactSafely and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely) or (minDistancePredicted < SafeDistance and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely) then
+    elseif false or
+            (currentDistance < SafeDistance )
+            or (currentDistance < distanceNeededToReactSafely and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely)
+            or (minDistancePredicted < SafeDistance and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely) then
         
         return CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafely, numberOfFrames, constructPosition, constructVelocity, newPositionsAndVectors)
         
