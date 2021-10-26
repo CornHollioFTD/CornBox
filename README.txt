@@ -1,6 +1,3 @@
-# CornBox
-Collision avoidance script for tournaments in From The Depths
-
 I. Important notes.
 
 Read this!
