@@ -1,3 +1,6 @@
+Partially outdated readme.
+
+
 I. Important notes.
 
 Read this!
