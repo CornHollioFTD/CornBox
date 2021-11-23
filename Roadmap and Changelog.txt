@@ -1,0 +1,23 @@
+Planned for the next release:
+
+1. Dispose of Vector3 calls.
+2. Full support for reverse.
+3. More testing for planes.
+4. Better solution for actual collisions.
+
+
+2021.11.23
+v4
+- Added official support for planes. Everything is a ship, unless it goes too fast or have high altitude (so if a plane falls into the water - it's a ship now). You own construct will self identify as a ship by default and you should change that to a plane as necessary. If your construct is a plane - U and J commands will indicate pitch instead of speed.
+- Ships will never try to avoid planes. Planes will not avoid ships by default, but there is a setting to change that.
+- To avoid collisions planes will consider changing yaw and pitch as a separate maneuvers, so your bread may choose to follow only one of this commands (yaw being recommended). For pitch there is a altitude limits - no pitch up if plane will be too high or pitch down if too low.
+- When solving collisions for planes CornBox will use algorithm different from the one for ships. It expects them to just fly with the same velocity vector, and does not consider for prediction possibility of pile up (may be improved in the next update) or recent rate of turn. This is done so because i consider it impractical to try to predict their combat maneuvers and assume that they should have enough agility to change course on a short notice. First pass on this - more testing and tuning needed.
+- Major increase in performance. Not that this was really necessary, but nothing will stop the Swarm! Now only fixed number of crafts from each side will run full script each frame. During inactive frames CornBox will not be performing new collision checks, but instead will only repeat commands from its last active frame. Set to 3 by default - for maximum possible number of crafts in SS3 fleet (37) this will result in 0.3 second intervals. All crafts in the fleet should use the same value for this.
+- Added full support for multiple CornBoxes on the same craft. Now only one of them will be fully active and the rest will wait for the active one to die. This will have effect only if you are running 3.3.1+.
+- Added adjustable delay at the beginning of the match. CornBox will be activated only after set number of frames after spawn. 
+- Added adjustable delay before CornBox will take control from standard AI. This is to prevent script from interfering with the AI by constantly demanding small corrections.
+- Less downtime for standard AI after short correction.
+- Other fixes and improvements.
+
+
+
