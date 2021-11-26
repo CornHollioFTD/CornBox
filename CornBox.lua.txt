@@ -1,4 +1,4 @@
--- V4
+-- V5
 
 
 
@@ -38,6 +38,7 @@
 
 --  Dimensions and margins
             SafeDistance = 100
+            SafeDistanceForPlanes = 30
             ExtraDistanceForBeingFriendly = 20
 
             MaximumSizeOfEnemyShip = 300
@@ -45,7 +46,8 @@
 
             MaximumTimeForCoursePrediction = 15
 
-            MinimumAltitudeForPlanePitchDown = 50
+            UsePitchAltitudeLimit = true
+            MinimumAltitudeForPlanePitchDown = 150
             MaximumAltitudeForPlanePitchUp = 450
 
             ActiveCraftsPerFrame = 3
@@ -195,6 +197,7 @@ PollResultForPreviousFrame = 0
 VictoryInThePoll = false
 VictoryInThePollForPreviousFrame = false
 
+CourseChangeDegreesForPlane = 30
 
 function UpdateRotationAndSpeed(constructVelocity, newPositionsAndVectors)                             -- Need fix for angle at low speed?
     local constructHealthFraction = I:GetHealthFraction()
@@ -503,21 +506,26 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
         propulsionRequestForward = PropulsionRequestToStopOrReverse
         PropulsionRequestReverse = PropulsionRequestWhileAvoiding
         YawDirectionSign = -1
-    end    
+    end
     
-    local angleStep = 30
+    
+    local angleStep = CourseChangeDegreesForPlane
     local desiredYaw, desiredForward, desiredPitch = 0, 0, 0
 
     local constructRightVector = I:GetConstructRightVector()
+    local constructUpVector = I:GetConstructUpVector()
+
+ --   DBG("Up: "..PV(constructUpVector))
+ --   DBG("Ri: "..PV(constructRightVector))    
     
     local minDistancePredictedUp, minTimePredictedUp, currentDistanceUp, closestObstacleIdUp, constructNewAltitudeUp
     =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep * -1, constructRightVector) * constructVelocity, newPositionsAndVectors)
     local minDistancePredictedDown, minTimePredictedDown, currentDistanceDown, closestObstacleIdDown, constructNewAltitudeDown
-    =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep * 0.5, constructRightVector) * constructVelocity, newPositionsAndVectors)
+    =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep, constructRightVector) * constructVelocity, newPositionsAndVectors)
     local minDistancePredictedLeft, minTimePredictedLeft, currentDistanceLeft, closestObstacleIdLeft, constructNewAltitudeLeft
-    =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep * -1, Vector3.up) * constructVelocity, newPositionsAndVectors)
+    =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep * -1, constructUpVector) * constructVelocity, newPositionsAndVectors)
     local minDistancePredictedRight, minTimePredictedRight, currentDistanceRight, closestObstacleIdRight, constructNewAltitudeRight
-    =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep, Vector3.up) * constructVelocity, newPositionsAndVectors)
+    =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep, constructUpVector) * constructVelocity, newPositionsAndVectors)
 
     if minTimePredictedUp < timeToCollision and minTimePredictedDown < timeToCollision then
         if minTimePredictedDown > minTimePredictedUp then
@@ -529,7 +537,7 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
             desiredForward = PropulsionRequestReverse
             DBG("Close. Up.")
         end
-        if constructNewAltitudeDown < MinimumAltitudeForPlanePitchDown or constructNewAltitudeUp > MaximumAltitudeForPlanePitchUp then
+        if (constructNewAltitudeDown < MinimumAltitudeForPlanePitchDown or constructNewAltitudeUp > MaximumAltitudeForPlanePitchUp) and UsePitchAltitudeLimit then
             desiredPitch = 0
             desiredForward = 0
             DBG("Pitch limit.")
@@ -545,7 +553,7 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
             desiredForward = propulsionRequestForward
             DBG("Up.")
         end
-        if constructNewAltitudeDown < MinimumAltitudeForPlanePitchDown or constructNewAltitudeUp > MaximumAltitudeForPlanePitchUp then
+        if (constructNewAltitudeDown < MinimumAltitudeForPlanePitchDown or constructNewAltitudeUp > MaximumAltitudeForPlanePitchUp) and UsePitchAltitudeLimit  then
             desiredPitch = 0
             desiredForward = 0
             DBG("Pitch limit.")
@@ -562,6 +570,11 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
             desiredForward = PropulsionRequestReverse
             DBG("Close. Left.")
         end
+     --[[   if (constructNewAltitudeDown < MinimumAltitudeForPlanePitchDown or constructNewAltitudeUp > MaximumAltitudeForPlanePitchUp) and UsePitchAltitudeLimit then
+            desiredYaw = 0
+            desiredForward = 0
+            DBG("Yaw limit.")
+        end]]
     end    
     if desiredYaw == 0 then
         if minTimePredictedRight > minTimePredictedLeft then
@@ -573,6 +586,11 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
             desiredForward = propulsionRequestForward
             DBG("Left")
         end
+     --[[   if (constructNewAltitudeDown < MinimumAltitudeForPlanePitchDown or constructNewAltitudeUp > MaximumAltitudeForPlanePitchUp) and UsePitchAltitudeLimit then
+            desiredYaw = 0
+            desiredForward = 0
+            DBG("Yaw limit.")
+        end    ]]    
     end
     --DBG("desiredYaw: "..desiredYaw.."  desiredForward: "..desiredForward.."  desiredPitch: "..desiredPitch)
 
@@ -680,9 +698,9 @@ function DetectAndAvoidCollision()
         =  FindMinimalFlybyDistanceAndTime(constructPosition, constructVelocity, newPositionsAndVectors)
     
     local timeNeededToReactSafely = TimeNeededForConstructToReactSafely * 2
-    if IsConstructPlane then         
-        timeNeededToReactSafely = timeNeededToReactSafely / 2 
-    end
+  --  if IsConstructPlane then         
+  --      timeNeededToReactSafely = timeNeededToReactSafely / 2 
+  --  end
     local distanceNeededToReactSafely = ConstructCurrentSpeed * TimeNeededForConstructToReactSafely * 2                -- wrong !!!
     local numberOfFrames = NumberOfFramesToPredictWith
     DBG("timeNeededToReactSafely: "..timeNeededToReactSafely.." distanceNeededToReactSafely: "..distanceNeededToReactSafely.." ConstructCurrentSpeed: "..ConstructCurrentSpeed)
@@ -819,6 +837,7 @@ function StartupInitialization()
 
     if IsConstructPlane then
         EnemySphericalHalfSize = MaximumSizeOfEnemyPlane/2                                   -- Not valid for ships!
+        SafeDistance = SafeDistanceForPlanes
     else
         EnemySphericalHalfSize = MaximumSizeOfEnemyShip/2
     end
@@ -938,7 +957,7 @@ function Update(ILocal)
         else
             DBG("Skipping of the frame. FrameCounter: "..FrameCounter.."  activeFrame: "..tostring(activeFrame).."  activeBox: "..tostring(activeBox))
         end
-        
+
         if DesiredYaw ~= 0 or DesiredForward ~= 0 or DesiredPitch ~= 0 then
             DoStuff(DesiredYaw, DesiredForward, DesiredPitch)
         else
