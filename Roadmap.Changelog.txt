@@ -4,6 +4,21 @@ Planned for the next release:
 2. Full support for reverse.
 3. More testing for planes.
 4. Better solution for actual collisions.
+5. Add full support for roll.
+6. Get size from speed.
+7. Sync frames.
+8. Add accurate safe distance.
+9. Planes should prefer to go up, if possible.
+10. Right of the way between friendlies.
+11. Try to commit to selected maneuver.
+12. Flatten vectors for ships.
+
+
+
+v5
+- Fix to use roll of the plane more consistently.
+- CornBox will remap pitch/yaw outputs for the betterment of glorious standard AI. Therefore in the bread inputs from CornBox should go right before pitch/yaw outputs.
+
 
 
 2021.11.23
