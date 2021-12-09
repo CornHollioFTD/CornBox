@@ -18,7 +18,7 @@ Planned for the next release:
 v5
 - Fix to use roll of the plane more consistently.
 - CornBox will remap pitch/yaw outputs for the betterment of glorious standard AI. Therefore in the bread inputs from CornBox should go right before pitch/yaw outputs.
-
+- Planes will prefer to go up, if possible, and consider downwards trajectory more dangerous then it is. 
 
 
 2021.11.23
