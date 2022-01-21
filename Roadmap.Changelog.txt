@@ -2,17 +2,23 @@ Planned for the next release:
 
 1. Dispose of Vector3 calls.
 2. Full support for reverse.
-3. More testing for planes.
-4. Better solution for actual collisions.
-5. Add full support for roll.
-6. Get size from speed.
-7. Sync frames.
-8. Add accurate safe distance.
-9. Planes should prefer to go up, if possible.
-10. Right of the way between friendlies.
-11. Try to commit to selected maneuver.
-12. Flatten vectors for ships.
+3. Better solution for actual collisions.
+4. Get size from speed.
+5. Add accurate safe distance.
+6. Right of the way between friendlies.
+7. Try to commit to selected maneuver.
+8. Flatten vectors for ships.
 
+
+2022.01.21
+v6
+- Planes will prefer to go up, if possible, and consider downwards trajectory more dangerous then it is. 
+- Added "Integration test" mode.
+When "IntegrationTestDuration" set to more than 0, CornBox will cycle through all commands so you can test if your craft respond as expected.
+For ships: yaw right/left, stop. 
+For planes: yaw right/left, pitch up/down and their combinations.
+Don't forget to disable this after you are done with the test.
+- Support for reverse got a little better, but it's still experimental and should be used with care (or not used at all).
 
 
 v5
