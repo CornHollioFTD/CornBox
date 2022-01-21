@@ -12,7 +12,6 @@ Planned for the next release:
 
 2022.01.21
 v6
-- Planes will prefer to go up, if possible, and consider downwards trajectory more dangerous then it is. 
 - Added "Integration test" mode.
 When "IntegrationTestDuration" set to more than 0, CornBox will cycle through all commands so you can test if your craft respond as expected.
 For ships: yaw right/left, stop. 
