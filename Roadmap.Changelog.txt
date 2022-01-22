@@ -8,6 +8,7 @@ Planned for the next release:
 6. Right of the way between friendlies.
 7. Try to commit to selected maneuver.
 8. Flatten vectors for ships.
+9. Exclude something by distance.
 
 
 2022.01.21
