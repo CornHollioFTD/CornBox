@@ -9,6 +9,7 @@ Planned for the next release:
 7. Try to commit to selected maneuver.
 8. Flatten vectors for ships.
 9. Exclude something by distance.
+10. Check for worldshift.
 
 
 2022.01.21
