@@ -1,3 +1,8 @@
+Video tutorials on how to use CornBox:
+https://discord.com/channels/481245790149279744/528650029683048459/934161892207906826
+https://discord.com/channels/481245790149279744/528650029683048459/934492664462704750
+
+
 Partially outdated readme.
 
 
