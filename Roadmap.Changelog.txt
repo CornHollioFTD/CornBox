@@ -10,6 +10,8 @@ Planned for the next release:
 8. Flatten vectors for ships.
 9. Exclude something by distance.
 10. Check for worldshift.
+11. Range warning
+12. FoF warning
 
 
 2022.01.21
