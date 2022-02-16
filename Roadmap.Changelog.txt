@@ -14,6 +14,13 @@ Planned for the next release:
 12. FoF warning
 
 
+v7
+- Added avoidance for map borders.
+- Added scan for map borders, based on terrain to seabed drop.
+- Map will be rescanned after world shift.
+- Added scan for sharp terrain elevation.
+
+
 2022.01.21
 v6
 - Added "Integration test" mode.
