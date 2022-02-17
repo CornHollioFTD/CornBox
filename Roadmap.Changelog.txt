@@ -3,7 +3,7 @@ Planned for the next release:
 1. Dispose of Vector3 calls.
 2. Full support for reverse.
 3. Better solution for actual collisions.
-4. Get size from speed.
+4. Keep track of altitude of enemies to apply appropriate size estimation.
 5. Add accurate safe distance.
 6. Right of the way between friendlies.
 7. Try to commit to selected maneuver.
@@ -19,6 +19,12 @@ v7
 - Added scan for map borders, based on terrain to seabed drop.
 - Map will be rescanned after world shift.
 - Added scan for sharp terrain elevation.
+- Added support for submarines and land vehicles.
+- Better segregation between classes.
+- Universal class of the craft will be set based on current altitude.
+- Added check for terrain height at and around the (0, 0) of the map during initialization to get correction for altitude of the planes.
+- Dichotomy in controls for ship vs plane are now split as 2D vs 3D control schemes.
+- Settings for the script were rearranged and expanded.
 
 
 2022.01.21
