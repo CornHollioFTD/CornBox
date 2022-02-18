@@ -18,13 +18,24 @@ v7
 - Added avoidance for map borders.
 - Added scan for map borders, based on terrain to seabed drop.
 - Map will be rescanned after world shift.
-- Added scan for sharp terrain elevation.
+- Added scan for sharp change in terrain elevation.
 - Added support for submarines and land vehicles.
 - Better segregation between classes.
 - Universal class of the craft will be set based on current altitude.
 - Added check for terrain height at and around the (0, 0) of the map during initialization to get correction for altitude of the planes.
 - Dichotomy in controls for ship vs plane are now split as 2D vs 3D control schemes.
 - Settings for the script were rearranged and expanded.
+- Dimensions of enemy crafts will be updated based on their current altitude/class.
+- Values for Land Units will apply instead on the ones for Ships if it's a land map, based on MinimumTerrainAltitudeToBeLandMap, probed around (0, 0) or at the center of arena.
+- Friendly crafts spawned after script initialisation will get correct size.
+- LeftSafetyFactor - fixed and renamed.
+- Submarines got their own PitchLimit.
+- IntegrationTestDuration got a promotion and now in seconds instead of frames.
+- Value for SafeDistance will be correctly updated for multi-class crafts.
+- Added ObstacleExclusionDistance. To exclude from calculations obstacles that are too far away to be relevant.
+- Collision avoidance algorithm can be set per class or permanently for the craft. Experimental.
+- PitchLimit won't apply to ships.
+
 
 
 2022.01.21
