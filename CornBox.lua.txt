@@ -1,20 +1,23 @@
--- V6
 
-
+-- V7
 
 
 -- User-friendly settings:
 
 
---  1. Is it a ship or a plane? Set this to 'true' for plane.
-            IsConstructPlane = false 
 
---  2. Choose your AI type:
---      'true' for standard AI, 'false' for breadboard
-            DoTakeControlFromAiAndSendYawCommand = true
 
---      'true' for full breadboard AI, 'false' for standard AI
-            DoSendComplexControlCommand = false
+--      1. Select AI type on your craft:
+--                        '1' for Standard/Hybrid AI. Will take control from AI.
+--                        '2' for Breadboard AI. Will send commands via complex controls.
+--                        '3' use both for whatever unholy reasons.
+            TypeOfAiOnTheCraft = 1
+
+
+--      2. Run integration test and don't forget to set this to 0 after:
+--                        Set this to some time in seconds to run integration test. 10 seconds will do.
+--                        Set this to '0' to disable it afterwards.
+            IntegrationTestDuration = 0
 
 
 
@@ -28,60 +31,123 @@
 
 
 
-
-
---  Behavior
-            DisablePitchControlForPlanes = false
-            ShouldYourPlaneAvoidShips = false
-            AltitudeToBePlane = 15                -- Altitude and speed at which other crafts will be treated as plane.
-            SpeedToBePlane = 55
-
-            ShowMessageForRunningAndWarnings = false
-            IntegrationTestDuration = 40*0        -- Set this to 0 to disable integration test mode (time in frames)
-
 --  Dimensions and margins
-            SafeDistance = 250
-            SafeDistanceForPlanes = 75
+            MaximumSizeOfEnemyShips = 300
+            MaximumSizeOfEnemyPlanes = 100
+            MaximumSizeOfEnemySubmarines = 100
+            MaximumSizeOfEnemyLandUnits = 50
+
+            SafeDistanceForShips = 350
+            SafeDistanceForPlanes = 100
+            SafeDistanceForSubmarines = 200
+            SafeDistanceForLandUnits = 100
+
             ExtraDistanceForBeingFriendly = 25
-
-            MaximumSizeOfEnemyShip = 300
-            MaximumSizeOfEnemyPlane = 100
-
+            
             MaximumTimeForCoursePrediction = 15
+            ObstacleExclusionDistance = 1000                -- Only crafts closer than this will be considered for possible collision.
 
-            UsePitchAltitudeLimit = true
-            MinimumAltitudeForPlanePitchDown = 100
-            MaximumAltitudeForPlanePitchUp = 430
-            DownwardsDangerFactor = 0.5
-            LeftDangerFactor = 0.95
 
-            ActiveCraftsPerFrame = 3                -- This must be the same for all crafts in your fleet!
+-- Map and terrain
+            DoAvoidMapBorders = true               -- Set this to 'true' if your craft will be fighting on a map with limited area. 
+                                                    -- Map will be scanned to find its borders, where terrain ends with the sharp drop to the seabed level.
+                                                    -- This feature intended for Arena-style maps.
+            MinimumDistanceFromBorder = 500
+            TimeToPredictBorderViolation = 5
+
+            ProbeAheadForTerrain = true             -- 'true' for you craft to bounce away from walls on arena or from slopes of regular terrain. 'false' to disable.
+            TimeToPredictTerrain = 10
+            AltitudeDifferenceToPanic = -30         -- Craft will turn away if the difference between CoM and terrain ahead are this big.
+                                                    -- E.g. >0 - hill/wall for tanks, <0 - safe depth for ship.
+            ProbeForTerrainIfPlane = true
+            SendPitchUpIfTerrainAhead = true         -- In addition to turning left/right, will try to go up if 'true'. 'false' to disable.
+            
+            MinimumTerrainAltitudeToBeLandMap = -10     -- If altitude around center of the map is more than this - map will be treated as "Land map"
+                                                        --      and everything that is too low for "Plane" and too high for "Submarine"
+                                                        --      will be treated as "Land Unit", instead of being "Ship".
+
+
+--  Definition for Classes
+            AltitudeToBePlane = 20                -- Altitude (above average height of map center) at which crafts will be treated as planes.
+            
+            AltitudeToBeSubmarine = -11           -- Altitude at which crafts will be treated as submarines.
+            
+            TypeOfTheCraft = 1                    -- Type of the craft. Default - '1'.
+                                                  -- '1' for Automatic/Universal. Appropriate class will chosen based on current altitude.
+                                                  -- '2' for Surface: Ships, Water skimmers, Land units, etc.
+                                                  -- '3' for Planes.                
+                                                  -- '4' for Submarines.    
+
+
+-- Class segregation rules:
+            ShouldYourPlaneAvoidSurfaceCrafts = false
+            ShouldYourSurfaceCraftAvoidPlanes = false
+            ShouldYourSurfaceCraftAvoidSubmarines = false
+            ShouldYourSubmarineAvoidSurfaceCrafts = true
+            
+            DoCheckForCollisionWithEnemy = true             --  Leave this as 'true', unless you are building melee craft
+            DoCheckForCollisionWithFriendlies = true        --  or hate your own fleet
+            
+
+
+-- "Gant" algorithm tuning (by default it will be used on Planes and Submarines):
+            DisableUpAndDownCourseChange = false    -- If set to 'true' - craft will not change its altitude to avoid collision.
+            
+            UsePitchAltitudeLimit = true            -- If set to 'true' - craft will not change its altitude to avoid collision, 
+                                                    --      if its altitude will be predicted outside of set safe limits.
+            
+            MinimumAltitudeForPlanePitchDown = 200
+            MaximumAltitudeForPlanePitchUp = 350
+            
+            MinimumAltitudeForSubmarinePitchDown = -200
+            MaximumAltitudeForSubmarinePitchUp = -100
+            
+            DownwardsSafetyFactor = 0.5             -- Multipliers for perceived safety for maneuvers. Set to '1' for fair assessment.
+            LeftSafetyFactor = 0.95
+
 
 --  Delays, in frames (1/40 of a second)
-            DelayBeforeTakingControlFromStandardAI = 5
-            StartupDelay = 40*3                        
+            DelayBeforeTakingControlFromStandardAI = 10  -- To prevent small corrections to interfere with standard AI.
+            StartupDelay = 0         -- Increase it if you need more control after spawn.             
 
---  Leave this as 'true', unless you are building illegal melee craft or hate your own fleet
-            DoCheckForCollisionWithEnemy = true
-            DoCheckForCollisionWithFriendlies = true
 
 --  Values for control axies, useful for standard AI
             PropulsionRequestWhileAvoiding = 1
             PropulsionRequestToStopOrReverse = 0.1
-            PropulsionRequestForYawRight = -1
-            PropulsionRequestForPitchUp = 1
+            PropulsionRequestForYawRight = -1               -- Set this to '0' to disable the use of the control axis. 
+            PropulsionRequestForPitchUp = 1                 -- Will not be overridden by roll-remap!
 
-            ChangeToYawDirectionWhileInReverse = 1              -- Set to -1 to invert yaw 
-            MinimumDistanceToKeepReversing = 200                -- You craft will continue to reverse until it get this far from obstacle
+            ChangeToYawDirectionWhileInReverse = 1              -- Set to -1 to invert yaw. Using reverse are not recommended!
+            MinimumDistanceToKeepReversing = 200                -- You craft will continue to reverse until it get this far from obstacle. 
 
 --  Meaning of complex controls for commands, used for breadboard
-            CCCForYawRight = 8  -- K
-            CCCForYawLeft = 4  -- H
-            CCCWhileAvoiding = 5 -- U
-            CCCToStopOrReverse = 6 -- J
+            CCCForYawRight = 8       -- K
+            CCCForYawLeft = 4        -- H
             
-            CCCForPitchUp = 5 -- U
-            CCCForPitchDown = 6 -- J
+            CCCForPitchUp = 10       -- L
+            CCCForPitchDown = 9      -- O
+
+            CCCWhileAvoiding = 5     -- U
+            CCCToStopOrReverse = 6   -- J
+
+-- "Don't mess with" section (and i mean it!)
+            ActiveCraftsPerFrame = 3        -- This must be the same for all crafts in your fleet!
+                                            -- Defines how many instances of the script can be active on the crafts in your fleet during each frame.
+
+            ShowMessageForRunningAndWarnings = false
+
+            CourseChangeDegreesToLookForSafety = 30
+            
+            ForceUsageOfAlgorithm = "Auto"      --  'Auto' - Based on current class.
+                                                --  'Big Boy' - will use recorded turn rate to predict movement of obstacles.
+                                                --      Expensive, but capable of preventing pile-ups.
+                                                --      Intended for big ships and other not too wobbly or too pitchy crafts.
+                                                --  'Gnat' - will prob at the sides for less dangerous position, assuming instant turn.
+                                                --      Cheap, but good enough for maneuverable crafts.
+            AlgorithmForShip = "Big Boy"
+            AlgorithmForPlane = "Gnat"
+            AlgorithmForSubmarine = "Gnat"
+            AlgorithmForLandUnit = "Big Boy"
 
 
 
@@ -103,14 +169,14 @@
 
 
 
-First shalt thou set type of AI and craft, be that bread or standard, ship or plane.
+First shalt thou set type of AI, be that bread or standard.
 Then, shalt thou do no more, but do no less.
-Setting of the types shalt be the change thou shalt do,
- and the only change to the script shall be setting of the AI and craft type.
+Setting of the type shalt be the change thou shalt do,
+ and the only change to the script shall be setting of the AI type.
 Any functions shalt thou not change, nor either unknown variables,
- excepting that thou set the AI type and craft.
+ excepting that thou set the AI type.
 Any change to the any function is right out.
-Once the type of AI and craft, being in the beginning of the script, be set,
+Once the type of AI, being in the beginning of the script, be set,
  then all changes shall be ceased and no naughty collisions thou shalt suffer.
  
  
@@ -127,7 +193,16 @@ Once the type of AI and craft, being in the beginning of the script, be set,
 
 
 
+
+
+
+
 --                                      Don't touch the rest!
+
+
+
+
+
 
 
 
@@ -157,13 +232,14 @@ DoInitializationOnStart = true
 ConstructDimensions = Vector3(1, 1, 1)
 ConstructSphericalHalfSize = 0
 
---EnemySphericalHalfSize = MaximumSizeOfEnemyShip/2 
-EnemySphericalHalfSize = MaximumSizeOfEnemyShip/2
+FallBackForEnemySphericalHalfSize = MaximumSizeOfEnemyShips / 2
 DimensionsOfFriendlies = {}
+DimensionsOfEnemies = {}
 ConstantForConstructId = -99
 ConstantForEnemyId = -77
 
 LastFrameConstructVelocity = Vector3(0, 0, 0)
+LastFrameConstructPosition = Vector3(0, 10000, 0)
 ConstructCurrentSpeed = 10
 ConstructCurrentCourse = 0
 ConstructMaxTurnRate = 10
@@ -205,7 +281,20 @@ PollResultForPreviousFrame = 0
 VictoryInThePoll = false
 VictoryInThePollForPreviousFrame = false
 
-CourseChangeDegreesForPlane = 30
+
+MapBorderPointX1 = -10000
+MapBorderPointZ1 = 10000
+MapBorderPointX2 = 10000
+MapBorderPointZ2 = -10000
+
+HasTheWorldMovedOn = false
+
+CurrentSafeDistance = SafeDistanceForShips
+CurrentTypeOfTheCraft = TypeOfTheCraft
+HeightOfMapCenter = 0
+IsItALandMap = false
+
+CurrentAlgorithm = "Gnat"
 
 function UpdateRotationAndSpeed(constructVelocity, newPositionsAndVectors)                             -- Need fix for angle at low speed?
     local constructHealthFraction = I:GetHealthFraction()
@@ -265,21 +354,35 @@ function GetSphericalHalfSize(id)
     if id == ConstantForConstructId then
         return ConstructSphericalHalfSize
     end
-    if id == ConstantForEnemyId then
-        return EnemySphericalHalfSize                                            -- Add size list 
-    end
+
+    if DimensionsOfEnemies[id] ~= nil then
+       -- DBG("DimensionsOfEnemies[id]: ".. DimensionsOfEnemies[id])
+        return DimensionsOfEnemies[id]                   
+    end    
 
     if DimensionsOfFriendlies[id] ~= nil then
-        return DimensionsOfFriendlies[id].MaxSphericalHalfSize                   -- check id for the rest
+      --  DBG("DimensionsOfFriendlies[id].MaxSphericalHalfSize: ".. DimensionsOfFriendlies[id].MaxSphericalHalfSize .."  id: "..id)        
+        return DimensionsOfFriendlies[id].MaxSphericalHalfSize               
     end
+
+    if id == ConstantForEnemyId then
+       -- DBG("Wrong size. id: "..id)
+        return FallBackForEnemySphericalHalfSize                                           
+    end
+
+    UpdateFriendlySizes()
+    if DimensionsOfFriendlies[id] ~= nil then
+      --  DBG("New DimensionsOfFriendlies[id].MaxSphericalHalfSize: ".. DimensionsOfFriendlies[id].MaxSphericalHalfSize .."  id: "..id)
+        return DimensionsOfFriendlies[id].MaxSphericalHalfSize                   
+    end    
     
- --   DBG("No size for Id: "..id.."  ConstantForConstructId: "..ConstantForConstructId.."  ConstantForEnemyId: "..ConstantForEnemyId)
-    return EnemySphericalHalfSize
+    DBG("No Size! for  "..id)
+    return FallBackForEnemySphericalHalfSize
 end
 
 
-function GetDistanceToObstacleSphere (constructPosition, obstaclePosition, obstacleId)   -- Skip check for construct if not used in full
-    return (constructPosition - obstaclePosition).magnitude - ConstructSphericalHalfSize --[[GetSphericalHalfSize(ConstantForConstructId) ]]- GetSphericalHalfSize(obstacleId)
+function GetDistanceToObstacleSphere (constructPosition, obstaclePosition, obstacleId) 
+    return (constructPosition - obstaclePosition).magnitude - ConstructSphericalHalfSize - GetSphericalHalfSize(obstacleId)
 end
 
 
@@ -428,7 +531,7 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafe
     end
     
     if AggressiveForward 
-            and minFinalCurrentDistanceCurrentCourse > SafeDistance and (minCurrentDistanceCurrentCourse > SafeDistance
+            and minFinalCurrentDistanceCurrentCourse > CurrentSafeDistance and (minCurrentDistanceCurrentCourse > CurrentSafeDistance
             or (minCurrentDistanceCurrentCourse > 0 and averageDistanceCC > averageDistanceHL and averageDistanceCC > averageDistanceHR))
        --     and minCurrentDistanceCurrentCourse > minCurrentDistanceHardLeftCourse and minCurrentDistanceCurrentCourse > minCurrentDistanceHardRightCourse 
     then    
@@ -436,7 +539,7 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafe
         return 0, 0, 0
     end
     
-    if PreferredRight and minFinalCurrentDistanceHardRightCourse > SafeDistance and minCurrentDistanceHardRightCourse > 0 
+    if PreferredRight and minFinalCurrentDistanceHardRightCourse > CurrentSafeDistance and minCurrentDistanceHardRightCourse > 0 
         and averageDistanceHR > averageDistanceHL
     then
         DBG("Preferred Right.")
@@ -444,14 +547,14 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafe
     end
 
     if minFinalCurrentDistanceHardRightCourse > minFinalCurrentDistanceHardLeftCourse and
-            minFinalCurrentDistanceHardRightCourse > SafeDistance and
+            minFinalCurrentDistanceHardRightCourse > CurrentSafeDistance and
             minCurrentDistanceHardRightCourse > 0 then
         DBG("Go right. Safe.")
         return PropulsionRequestForYawRight * YawDirectionSign, propulsionRequestForward, 0
     end
 
     if minFinalCurrentDistanceHardLeftCourse > minFinalCurrentDistanceHardRightCourse and
-            minFinalCurrentDistanceHardLeftCourse > SafeDistance and
+            minFinalCurrentDistanceHardLeftCourse > CurrentSafeDistance and
             minCurrentDistanceHardLeftCourse > 0 then
         DBG("Go left. Safe.")
         return PropulsionRequestForYawRight * -1 * YawDirectionSign, propulsionRequestForward, 0
@@ -505,6 +608,20 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafe
 end
 
 
+function GetConstructRoll(constructForwardVector, constructUpVector)
+    local constructYawRaw = math.atan2(constructForwardVector.z, constructForwardVector.x);
+    local constructRoll = math.asin(constructUpVector.x * math.sin(constructYawRaw) - constructUpVector.z * math.cos(constructYawRaw));
+    if(constructUpVector.y < 0) then
+        if constructRoll < 0 then
+            constructRoll = -1 * math.pi - constructRoll
+        else
+            constructRoll = 1 * math.pi - constructRoll
+        end
+    end
+    return constructRoll * 180 / math.pi * -1  
+end
+
+
 function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosition, constructVelocity, newPositionsAndVectors, timeToCollision)
     local propulsionRequestForward = PropulsionRequestWhileAvoiding
     local PropulsionRequestReverse = PropulsionRequestToStopOrReverse
@@ -523,36 +640,27 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
     local constructUpVector = I:GetConstructUpVector()
     local constructForwardVector = I:GetConstructForwardVector()
     
-    local constructYawRaw = math.atan2(constructForwardVector.z, constructForwardVector.x);
-    local constructRoll = math.asin(constructUpVector.x * math.sin(constructYawRaw) - constructUpVector.z * math.cos(constructYawRaw));
-    if(constructUpVector.y < 0) then
-        if constructRoll < 0 then
-            constructRoll = -1 * math.pi - constructRoll
-        else
-            constructRoll = 1 * math.pi - constructRoll
-        end
-    end
-    constructRoll = constructRoll * 180 / math.pi * -1
-    local constructRollRounded = Mathf.Round(constructRoll / 90) * 90
+
+    local constructRollRounded = Mathf.Round(GetConstructRoll(constructForwardVector, constructUpVector) / 90) * 90
     
-    local angleStep = CourseChangeDegreesForPlane    
+    local angleStep = CourseChangeDegreesToLookForSafety    
     local angleStepRemapMultiplierUp, angleStepRemapMultiplierDown, angleStepRemapMultiplierLeft, angleStepRemapMultiplierRight = 1, 1, 1, 1
-    
+
     if constructRollRounded == 0 then
         angleStepRemapMultiplierUp, angleStepRemapMultiplierDown, angleStepRemapMultiplierLeft, angleStepRemapMultiplierRight
-            = -1, DownwardsDangerFactor, -1 * LeftDangerFactor, 1
+            = -1, DownwardsSafetyFactor, -1 * LeftSafetyFactor, 1
     end
     if constructRollRounded == -90 then
         angleStepRemapMultiplierUp, angleStepRemapMultiplierDown, angleStepRemapMultiplierLeft, angleStepRemapMultiplierRight
-        = -1, 1, -1 * LeftDangerFactor, DownwardsDangerFactor
+        = -1, 1 * LeftSafetyFactor, -1, DownwardsSafetyFactor
     end
     if constructRollRounded == 90 then
         angleStepRemapMultiplierUp, angleStepRemapMultiplierDown, angleStepRemapMultiplierLeft, angleStepRemapMultiplierRight
-        = -1, 1, -1 * DownwardsDangerFactor * LeftDangerFactor, 1
+        = -1 * LeftSafetyFactor, 1, -1 * DownwardsSafetyFactor, 1
     end    
     if constructRollRounded == -180 or constructRollRounded == 180 then
         angleStepRemapMultiplierUp, angleStepRemapMultiplierDown, angleStepRemapMultiplierLeft, angleStepRemapMultiplierRight
-        = -1 * DownwardsDangerFactor, 1, -1 * LeftDangerFactor, 1
+        = -1 * DownwardsSafetyFactor, 1, -1, 1 * LeftSafetyFactor
     end
     
     local minDistancePredictedUp, minTimePredictedUp, currentDistanceUp, closestObstacleIdUp, constructNewAltitudeUp
@@ -563,14 +671,32 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
     =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep * angleStepRemapMultiplierLeft, constructUpVector) * constructVelocity, newPositionsAndVectors)
     local minDistancePredictedRight, minTimePredictedRight, currentDistanceRight, closestObstacleIdRight, constructNewAltitudeRight
     =  FindMinimalFlybyDistanceAndTime(constructPosition, Quaternion.AngleAxis(angleStep * angleStepRemapMultiplierRight, constructUpVector) * constructVelocity, newPositionsAndVectors)
+    
+    local MinimumAltitudeForPitchDown = MinimumAltitudeForSubmarinePitchDown
+    local MaximumAltitudeForPitchUp = MaximumAltitudeForPlanePitchUp
+    if CurrentTypeOfTheCraft == 3 then
+        MinimumAltitudeForPitchDown = MinimumAltitudeForPlanePitchDown
+        MaximumAltitudeForPitchUp = MaximumAltitudeForPlanePitchUp      
+    end
+    if CurrentTypeOfTheCraft == 4 then
+        MinimumAltitudeForPitchDown = MinimumAltitudeForSubmarinePitchDown
+        MaximumAltitudeForPitchUp = MaximumAltitudeForSubmarinePitchUp
+    end
 
+    if DisableUpAndDownCourseChange then
+        MinimumAltitudeForPitchDown = 10000
+        MaximumAltitudeForPitchUp = -10000
+        UsePitchAltitudeLimit = true
+    end
+    
+    
     if desiredPitch == 0 then
         if minDistancePredictedDown > minDistancePredictedUp then
             desiredPitch = PropulsionRequestForPitchUp * -1
             DBG("Down.")
             if UsePitchAltitudeLimit
-                and ( (constructRollRounded == 0 and constructNewAltitudeDown < MinimumAltitudeForPlanePitchDown)
-                    or ((constructRollRounded == -180 or constructRollRounded == 180) and constructNewAltitudeDown > MaximumAltitudeForPlanePitchUp) ) then
+                and ( (constructRollRounded == 0 and constructNewAltitudeDown < MinimumAltitudeForPitchDown)
+                    or ((constructRollRounded == -180 or constructRollRounded == 180) and constructNewAltitudeDown > MaximumAltitudeForPitchUp) ) then
                 desiredPitch = 0
            --     DBG("Pitch limit.  constructNewAltitudeDown: "..constructNewAltitudeDown)
             end
@@ -578,8 +704,8 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
             desiredPitch = PropulsionRequestForPitchUp
             DBG("Up.")
             if UsePitchAltitudeLimit
-                and ( (constructRollRounded == 0 and constructNewAltitudeUp > MaximumAltitudeForPlanePitchUp)
-                    or ((constructRollRounded == -180 or constructRollRounded == 180) and constructNewAltitudeUp < MinimumAltitudeForPlanePitchDown) ) then
+                and ( (constructRollRounded == 0 and constructNewAltitudeUp > MaximumAltitudeForPitchUp)
+                    or ((constructRollRounded == -180 or constructRollRounded == 180) and constructNewAltitudeUp < MinimumAltitudeForPitchDown) ) then
                 desiredPitch = 0
         --        DBG("Pitch limit.  constructNewAltitudeUp: "..constructNewAltitudeUp)
             end
@@ -597,8 +723,8 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
             desiredYaw = PropulsionRequestForYawRight * YawDirectionSign
             DBG("Right")
             if UsePitchAltitudeLimit
-                and ( (constructRollRounded == 90 and constructNewAltitudeRight > MaximumAltitudeForPlanePitchUp)
-                    or (constructRollRounded == -90 and constructNewAltitudeRight < MinimumAltitudeForPlanePitchDown) ) then
+                and ( (constructRollRounded == 90 and constructNewAltitudeRight > MaximumAltitudeForPitchUp)
+                    or (constructRollRounded == -90 and constructNewAltitudeRight < MinimumAltitudeForPitchDown) ) then
                 desiredYaw = 0
             --    DBG("Yaw limit.  constructNewAltitudeRight: "..constructNewAltitudeRight)
             end
@@ -606,8 +732,8 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
             desiredYaw = PropulsionRequestForYawRight * YawDirectionSign * -1
             DBG("Left")
             if UsePitchAltitudeLimit
-                and ( (constructRollRounded == 90 and constructNewAltitudeLeft < MinimumAltitudeForPlanePitchDown)
-                    or (constructRollRounded == -90 and constructNewAltitudeLeft > MaximumAltitudeForPlanePitchUp) ) then
+                and ( (constructRollRounded == 90 and constructNewAltitudeLeft < MinimumAltitudeForPitchDown)
+                    or (constructRollRounded == -90 and constructNewAltitudeLeft > MaximumAltitudeForPitchUp) ) then
                 desiredYaw = 0
            --     DBG("Yaw limit.  constructNewAltitudeLeft: "..constructNewAltitudeLeft)
             end
@@ -618,10 +744,6 @@ function CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane(constructPosit
         else
             desiredForward = propulsionRequestForward
         end
-    end
-
-    if DisablePitchControlForPlanes then
-        desiredPitch = 0 
     end
     
     return desiredYaw, desiredForward, desiredPitch
@@ -653,44 +775,285 @@ function SetPriorityNumberAndCountFriendlies ()
 end
 
 
-function ShouldItBeAvoided(info, position)
-    local altitude = position.y
-    local speed = info.Velocity.magnitude
+function ShouldItBeAvoided(constructPosition, position)
+
+    local typeOfEnemy = GetTypeOfUnitFromAltitude (position)
+
+  --  DBG("ShouldItBeAvoided. "..PV(position-constructPosition))
+
+    if (position - constructPosition).magnitude < ObstacleExclusionDistance then
+        
+        if typeOfEnemy == CurrentTypeOfTheCraft then
+            return true
+        end
+        
+        if CurrentTypeOfTheCraft == 2 and ShouldYourSurfaceCraftAvoidPlanes and typeOfEnemy == 3 then
+            return true
+        end
+
+        if CurrentTypeOfTheCraft == 2 and ShouldYourSurfaceCraftAvoidSubmarines and typeOfEnemy == 4 then
+            return true
+        end
+
+        if CurrentTypeOfTheCraft == 3 and ShouldYourPlaneAvoidSurfaceCrafts and typeOfEnemy == 2 then
+            return true
+        end
+
+        if CurrentTypeOfTheCraft == 4 and ShouldYourSubmarineAvoidSurfaceCrafts and typeOfEnemy == 2 then
+            return true
+        end
+    end
     
-    local isItPlane = false
-    if altitude > AltitudeToBePlane or speed > SpeedToBePlane then
-        isItPlane = true
-    end
-
-    if IsConstructPlane == isItPlane then
-        return true
-    end
-
-    if IsConstructPlane and not isItPlane and ShouldYourPlaneAvoidShips then
-        return true
-    end
-
-    return false    
+ --   DBG("ShouldItBeAvoided. false !!")
+    
+    return false
 end
 
---[[
-function UpdateEnemySizeFromSpeed (id, speed)
-    
-end
-]]
 
-function DetectAndAvoidCollision()    
+function GetBorderViolationMetric  (constructPosition, constructVelocity)
+    local newPosition = constructPosition + constructVelocity * TimeToPredictBorderViolation
+    local north = newPosition.z - MapBorderPointZ1
+    local south = (newPosition.z - MapBorderPointZ2) * -1
+    local west = (newPosition.x - MapBorderPointX1) * -1
+    local east = newPosition.x - MapBorderPointX2
+
+  --  DBG("north: "..north.." south: "..south.." west: "..west.." east: "..east)    
+    
+    return math.max(north, south, west, east)    
+end
+
+
+function CheckForBorderViolation (constructPosition, constructVelocity)
+  --  local newPosition = constructPosition + constructVelocity * TimeToPredictBorderViolation
+
+ --   DBG("I:GetConstructYaw(): "..I:GetConstructYaw())
+    local currentViolation = GetBorderViolationMetric(constructPosition, constructVelocity)
+    
+ --   DBG("currentViolation: "..currentViolation)
+
+
+    if currentViolation>0 then
+        local angleStep = CourseChangeDegreesToLookForSafety
+
+       -- local constructRightVector = I:GetConstructRightVector()
+      --  local constructUpVector = I:GetConstructUpVector()        
+        
+        
+        local rightTurnViolation = GetBorderViolationMetric(constructPosition, Quaternion.AngleAxis(angleStep --[[ *angleStepRemapMultiplierUp]], Vector3.up) * constructVelocity)
+        local leftTurnViolation = GetBorderViolationMetric(constructPosition, Quaternion.AngleAxis(angleStep * -1--[[ *angleStepRemapMultiplierUp]], Vector3.up) * constructVelocity)
+        DBG("rightTurnViolation: "..rightTurnViolation.." leftTurnViolation: "..leftTurnViolation)
+
+        local turnDirectionSign = 1
+        
+        if rightTurnViolation < leftTurnViolation then
+            DBG("Turning right from border!")
+            turnDirectionSign = 1
+        else
+            DBG("Turning left from border!")
+            turnDirectionSign = -1
+        end
+
+        
+        local constructUpVector = I:GetConstructUpVector()
+        local constructForwardVector = I:GetConstructForwardVector()
+        local constructRollRounded = Mathf.Round(GetConstructRoll(constructForwardVector, constructUpVector) / 90) * 90
+
+        if constructRollRounded == 0 then
+            return PropulsionRequestForYawRight * turnDirectionSign, 0
+        end
+        if constructRollRounded == -90 then
+            return 0, PropulsionRequestForPitchUp * turnDirectionSign                                       -- check roll sign!
+        end
+        if constructRollRounded == 90 then
+            return 0, PropulsionRequestForPitchUp * turnDirectionSign * -1
+        end
+        if constructRollRounded == -180 or constructRollRounded == 180 then
+            return PropulsionRequestForYawRight * turnDirectionSign * -1, 0
+        end
+        
+    end
+    
+    return 0, 0
+end
+
+
+function CheckForWorldShift (constructPosition, lastFrameConstructPosition, constructVelocity)
+    if (constructPosition - lastFrameConstructPosition).magnitude / (constructVelocity.magnitude * NumberOfSkippedFrames / 40 ) > 100 then
+      --  I:LogToHud("World Shift! Xc:" .. Mathf.Round((MapBorderPointX1+MapBorderPointX2)/2).." Zc: "..Mathf.Round((MapBorderPointZ1+MapBorderPointZ2)/2))
+        return true
+    else    
+        return false
+    end
+end
+
+
+
+function FindMapBorderPoints(anyTerrainX, anyTerrainZ, farFarAway)
+
+    function FindBorderLine(lastTerrainPoint, lastSeabedPoint, seabedDepth, direction, otherCoordinate)
+        --local lastTerrainPoint-lastSeabedPoint
+        --  I:Log("lastTerrainPoint: "..lastTerrainPoint.."  lastSeabedPoint: "..lastSeabedPoint)
+        if (lastSeabedPoint - lastTerrainPoint) <= 1 and (lastSeabedPoint - lastTerrainPoint) >= -1 then
+            return lastTerrainPoint
+        else
+            local newPoint = lastTerrainPoint + (lastSeabedPoint - lastTerrainPoint)/2
+            local depth = 0
+            if direction == "NS" then
+                depth = I:GetTerrainAltitudeForPosition(otherCoordinate, 0, newPoint)
+            else
+                depth = I:GetTerrainAltitudeForPosition(newPoint, 0, otherCoordinate)
+            end
+
+            if depth == seabedDepth then
+                return FindBorderLine(lastTerrainPoint, newPoint, seabedDepth, direction, otherCoordinate)
+            else
+                return FindBorderLine(newPoint, lastSeabedPoint, seabedDepth, direction, otherCoordinate)
+            end
+
+        end
+    end
+
+    local seabedDepth = I:GetTerrainAltitudeForPosition(farFarAway, 0, farFarAway)
+  --  I:Log("seabedDepth: "..seabedDepth)
+    --[[ I:Log("zE: "..FindBorderLine(anyTerrainX, farFarAway, seabedDepth, "WE", anyTerrainZ))
+     I:Log("zW: "..FindBorderLine(anyTerrainX, -farFarAway, seabedDepth, "WE", anyTerrainZ))
+     I:Log("zN: "..FindBorderLine(anyTerrainZ, farFarAway, seabedDepth, "NS", anyTerrainX))
+     I:Log("zS: "..FindBorderLine(anyTerrainZ, -farFarAway, seabedDepth, "NS", anyTerrainX))
+     ]]
+    return FindBorderLine(anyTerrainX, -farFarAway, seabedDepth, "WE", anyTerrainZ) + MinimumDistanceFromBorder,
+    FindBorderLine(anyTerrainZ, farFarAway, seabedDepth, "NS", anyTerrainX) - MinimumDistanceFromBorder,
+    FindBorderLine(anyTerrainX, farFarAway, seabedDepth, "WE", anyTerrainZ) - MinimumDistanceFromBorder,
+    FindBorderLine(anyTerrainZ, -farFarAway, seabedDepth, "NS", anyTerrainX) + MinimumDistanceFromBorder
+
+end
+
+
+
+
+
+
+function CheckForTerrainAhead (constructPosition, constructVelocity)
+   -- local newPosition = constructPosition + constructVelocity * TimeToPredictBorderViolation
+    
+    local constructForwardVector = I:GetConstructForwardVector()
+  
+
+    local altitudeOfTerrainAhead = I:GetTerrainAltitudeForPosition(constructPosition + constructVelocity * TimeToPredictTerrain)
+    local altitudeOfTerrainCloseAhead = I:GetTerrainAltitudeForPosition(constructPosition + constructVelocity * 1)  
+
+ --   DBG("constructPosition.y: "..constructPosition.y.."  altitudeOfTerrainAhead: "..altitudeOfTerrainAhead.."  altitudeOfTerrainCloseAhead: "..altitudeOfTerrainCloseAhead)
+
+
+    if ((altitudeOfTerrainAhead - AltitudeDifferenceToPanic) > constructPosition.y)
+            or ((altitudeOfTerrainCloseAhead - AltitudeDifferenceToPanic) > constructPosition.y) then
+        
+        local angleStep = CourseChangeDegreesToLookForSafety
+
+        local rightTurnTerrainAltitude = I:GetTerrainAltitudeForPosition(constructPosition + Quaternion.AngleAxis(angleStep, Vector3.up) * constructVelocity * TimeToPredictTerrain)
+        local leftTurnTerrainAltitude = I:GetTerrainAltitudeForPosition(constructPosition + Quaternion.AngleAxis(angleStep * -1, Vector3.up) * constructVelocity * TimeToPredictTerrain)
+        DBG("rightTurnTerrainAltitude: "..rightTurnTerrainAltitude.." leftTurnTerrainAltitude: "..leftTurnTerrainAltitude)
+
+        
+        local turnDirectionSign = 1
+        local desiredPitch = 0
+        
+        if SendPitchUpIfTerrainAhead then
+            desiredPitch = PropulsionRequestForPitchUp
+        end
+        
+        if rightTurnTerrainAltitude < leftTurnTerrainAltitude then
+            DBG("Turning right from terrain!")
+            turnDirectionSign = 1
+        else
+            DBG("Turning left from terrain!")
+            turnDirectionSign = -1            
+        end
+
+
+        local constructUpVector = I:GetConstructUpVector()
+
+        local constructRollRounded = Mathf.Round(GetConstructRoll(constructForwardVector, constructUpVector) / 90) * 90
+
+        if constructRollRounded == 0 then
+            return PropulsionRequestForYawRight * turnDirectionSign, desiredPitch
+        end
+        if constructRollRounded == -90 then
+            return PropulsionRequestForYawRight * -1, PropulsionRequestForPitchUp * turnDirectionSign                                       -- check roll sign!
+        end
+        if constructRollRounded == 90 then
+            return PropulsionRequestForYawRight, PropulsionRequestForPitchUp * turnDirectionSign * -1
+        end
+        if constructRollRounded == -180 or constructRollRounded == 180 then
+            return PropulsionRequestForYawRight * turnDirectionSign * -1, desiredPitch * -1
+        end
+
+    end
+
+    return 0, 0
+end
+
+
+
+function GetTypeOfUnitFromAltitude(constructPosition)
+    local altitude = constructPosition.y
+    
+ --   DBG("altitude: "..altitude.."  HeightOfMapCenter: "..HeightOfMapCenter.."  AltitudeToBePlane: "..AltitudeToBePlane.."  AltitudeToBeSubmarine: "..AltitudeToBeSubmarine)
+    
+    if altitude > AltitudeToBePlane + HeightOfMapCenter then
+        return 3
+    elseif altitude < AltitudeToBeSubmarine then
+        return 4    
+    else    
+        return 2
+    end
+end
+
+
+function DetectAndAvoidCollision()
+
+
+    local constructPosition = I:GetConstructCenterOfMass()
+    local constructVelocity = I:GetVelocityVector()
+    --constructVelocity.y=0                                                             -- Should it stay or should it go ??
+
+    HasTheWorldMovedOn = CheckForWorldShift(constructPosition, LastFrameConstructPosition, constructVelocity)                       -- remove for borderless maps??
+
+    if TypeOfTheCraft == 1 then
+        CurrentTypeOfTheCraft = GetTypeOfUnitFromAltitude (constructPosition)
+        UpdateCurrentSafeDistance (CurrentTypeOfTheCraft)
+    end
+
+    if ForceUsageOfAlgorithm == "Auto" then
+        if CurrentTypeOfTheCraft == 2 and IsItALandMap then
+            CurrentAlgorithm = AlgorithmForLandUnit            
+        else    
+            CurrentAlgorithm = AlgorithmForShip
+        end
+        if CurrentTypeOfTheCraft == 3 then
+            CurrentAlgorithm = AlgorithmForPlane
+        end
+        if CurrentTypeOfTheCraft == 4 then
+            CurrentAlgorithm = AlgorithmForSubmarine
+        end        
+    end
+    
+    
+ --   DBG("CurrentTypeOfTheCraft: "..CurrentTypeOfTheCraft)
+
+    if HasTheWorldMovedOn and DoAvoidMapBorders then
+        MapBorderPointX1, MapBorderPointZ1, MapBorderPointX2, MapBorderPointZ2 = FindMapBorderPoints(constructPosition.x, constructPosition.z, 20000)
+    end
+
+  --  DBG("X1: "..MapBorderPointX1.." Z1: "..MapBorderPointZ1.."   X2: "..MapBorderPointX2.." Z2: "..MapBorderPointZ2)
+    --DBG("Xc:" .. Mathf.Round((MapBorderPointX1+MapBorderPointX2)/2).." Zc: "..Mathf.Round((MapBorderPointZ1+MapBorderPointZ2)/2))
+  --  DBG("Xc:" .. Mathf.Round((MapBorderPointX1+MapBorderPointX2)/2).." Zc: "..Mathf.Round((MapBorderPointZ1+MapBorderPointZ2)/2).."   X1: "..MapBorderPointX1.." Z1: "..MapBorderPointZ1.."   X2: "..MapBorderPointX2.." Z2: "..MapBorderPointZ2)
     local friendlyCount = I:GetFriendlyCount()
     local enemyCount = I:GetNumberOfTargets(0)
 
     if (friendlyCount + 1) ~= PreviousCountForFriendlies then
         SetPriorityNumberAndCountFriendlies()        
     end
-    
-    local constructPosition = I:GetConstructCenterOfMass()
-    local constructVelocity = I:GetVelocityVector()
 
-    --constructVelocity.y=0                                                             -- Should it stay or should it go ??
     
     ConstructForwardsVelocityMagnitude = I:GetForwardsVelocityMagnitude()
     local newPositionsAndVectors = {}                                 
@@ -698,7 +1061,7 @@ function DetectAndAvoidCollision()
     if DoCheckForCollisionWithFriendlies then
         for i = 0, friendlyCount - 1, 1 do
             local infoForObstacle = I:GetFriendlyInfo(i)
-            if ShouldItBeAvoided(infoForObstacle, infoForObstacle.CenterOfMass) then
+            if ShouldItBeAvoided(constructPosition, infoForObstacle.CenterOfMass) then
                 newPositionsAndVectors[infoForObstacle.Id] = {
                     Id = infoForObstacle.Id,
                     Position = infoForObstacle.CenterOfMass,
@@ -708,12 +1071,26 @@ function DetectAndAvoidCollision()
         end
     end
 
+    local enemyType = 0
     if DoCheckForCollisionWithEnemy then
         for i = 0, enemyCount - 1, 1 do
             local infoForObstacle = I:GetTargetInfo(0, i)
-            if ShouldItBeAvoided(infoForObstacle, infoForObstacle.Position) then
+            if ShouldItBeAvoided(constructPosition, infoForObstacle.Position) then
+                
+                enemyType = GetTypeOfUnitFromAltitude (infoForObstacle.Position)
+                if enemyType == 2 and IsItALandMap then
+                    DimensionsOfEnemies[infoForObstacle.Id] = MaximumSizeOfEnemyLandUnits / 2 
+                elseif enemyType == 3 then
+                    DimensionsOfEnemies[infoForObstacle.Id] = MaximumSizeOfEnemyPlanes / 2
+                elseif enemyType == 4 then
+                    DimensionsOfEnemies[infoForObstacle.Id] = MaximumSizeOfEnemySubmarines / 2                    
+                else
+                    DimensionsOfEnemies[infoForObstacle.Id] = MaximumSizeOfEnemyShips / 2
+                end
+                
                 newPositionsAndVectors[infoForObstacle.Id] = {                                
-                    Id = ConstantForEnemyId, --infoForObstacle.Id,                           -- Deplorable! 
+                   -- Id = ConstantForEnemyId, --infoForObstacle.Id,                           -- Deplorable! 
+                    Id = infoForObstacle.Id,
                     Position = infoForObstacle.Position,
                     Velocity = infoForObstacle.Velocity
                 }
@@ -725,7 +1102,27 @@ function DetectAndAvoidCollision()
 
     UpdateRotationAndSpeed(constructVelocity, newPositionsAndVectors)                                       -- Need some love
     LastFramePositionsAndVectors = newPositionsAndVectors
+    LastFrameConstructPosition = constructPosition
+
+
+    if DoAvoidMapBorders then
+        local yawFromBorder, pitchFromBorder = CheckForBorderViolation(constructPosition, constructVelocity)
+        if yawFromBorder ~= 0 or pitchFromBorder ~= 0 then                                                           -- reverse?!?
+            
+            return yawFromBorder, PropulsionRequestWhileAvoiding, pitchFromBorder
+        end
+    end
     
+
+    if ProbeAheadForTerrain and ((CurrentTypeOfTheCraft ~= 3) or (ProbeForTerrainIfPlane and CurrentTypeOfTheCraft == 3)) then
+        local yawFromTerrain, pitchFromTerrain = CheckForTerrainAhead(constructPosition, constructVelocity)
+        if yawFromTerrain ~= 0 or pitchFromTerrain ~= 0 then                                                        -- reverse?!?
+           -- DBG('Terrain Ahead!')
+            return yawFromTerrain, PropulsionRequestWhileAvoiding, pitchFromTerrain
+        end      
+    end
+
+
     local minDistancePredicted, minTimePredicted, currentDistance, closestObstacleId
         =  FindMinimalFlybyDistanceAndTime(constructPosition, constructVelocity, newPositionsAndVectors)
     
@@ -757,18 +1154,11 @@ function DetectAndAvoidCollision()
             return PropulsionRequestForYawRight * YawDirectionSign, PropulsionRequestReverse, 0
         end
         
-    elseif IsConstructPlane then
-        if (currentDistance < SafeDistance )
-            or (minTimePredicted < timeNeededToReactSafely / 3 and minDistancePredicted < distanceNeededToReactSafely / 3) then 
+    elseif CurrentAlgorithm == "Big Boy" then
 
-            return CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane (constructPosition, constructVelocity, newPositionsAndVectors, minTimePredicted)
-            
-        end
-    else
-
-         if (currentDistance < SafeDistance )
+         if (currentDistance < CurrentSafeDistance )
             or (currentDistance < distanceNeededToReactSafely and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely)
-            or (minDistancePredicted < SafeDistance and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely) then        
+            or (minDistancePredicted < CurrentSafeDistance and minTimePredicted > 0 and minTimePredicted < timeNeededToReactSafely) then        
   
             return CompareSafetyOfManeuversAndChooseDirectionOfTurn (timeNeededToReactSafely, numberOfFrames, constructPosition, constructVelocity, newPositionsAndVectors)
         
@@ -776,9 +1166,14 @@ function DetectAndAvoidCollision()
              
             return DesiredYaw, DesiredForward, 0
              
-         end    
-        
-            
+         end
+    else
+        if (currentDistance < CurrentSafeDistance )
+                or (minTimePredicted < timeNeededToReactSafely / 3 and minDistancePredicted < distanceNeededToReactSafely / 3) then
+
+            return CompareSafetyOfManeuversAndChooseDirectionOfTurnForPlane (constructPosition, constructVelocity, newPositionsAndVectors, minTimePredicted)
+
+        end
     end
     
     DBG ("All good. "..currentDistance) 
@@ -790,46 +1185,37 @@ end
 FramesSinceLastControlRequest = 0
 
 function DoStuff (desiredYaw, desiredForward, desiredPitch)
-    if DoTakeControlFromAiAndSendYawCommand then
+    if TypeOfAiOnTheCraft == 1 or TypeOfAiOnTheCraft == 3 then
         if CounterForDelayBeforeTakingControlFromStandardAI <= 0 then
-            if IsConstructPlane then                
-                if desiredYaw ~= 0 or desiredPitch ~= 0 then
-                    if FramesSinceLastControlRequest == 0 or FramesSinceLastControlRequest >= ConstantForFramesPerSecond then
-                        I:TellAiThatWeAreTakingControl()
-                        FramesSinceLastControlRequest = NumberOfSkippedFrames
-                    end
-                    I:RequestControl(0, 0, desiredYaw)               
-                    I:RequestControl(0, 4, desiredPitch)
-                    I:RequestControl(0, 8, PropulsionRequestWhileAvoiding)
+            
+            if desiredYaw ~= 0 or desiredPitch ~= 0 or desiredForward ~= 0 then
+                if FramesSinceLastControlRequest == 0 or FramesSinceLastControlRequest >= ConstantForFramesPerSecond then
+                    I:TellAiThatWeAreTakingControl()
+                    FramesSinceLastControlRequest = NumberOfSkippedFrames
                 end
-            else
-                if desiredYaw ~= 0 then
-                    if FramesSinceLastControlRequest == 0 or FramesSinceLastControlRequest >= ConstantForFramesPerSecond then
-                        I:TellAiThatWeAreTakingControl()
-                        FramesSinceLastControlRequest = NumberOfSkippedFrames
-                    end
-                    I:RequestControl(0, 0, desiredYaw )                
-                    I:RequestControl(0, 8, desiredForward)
-                end                
+                
+                I:RequestControl(0, 0, desiredYaw)
+                I:RequestControl(0, 4, desiredPitch)
+                I:RequestControl(0, 8, desiredForward)
+                
             end
+            
         end        
         CounterForDelayBeforeTakingControlFromStandardAI = CounterForDelayBeforeTakingControlFromStandardAI - NumberOfSkippedFrames        
+        
     end
 
-    if DoSendComplexControlCommand then
-        if IsConstructPlane then
-            if desiredYaw == PropulsionRequestForYawRight * -1 then I:RequestComplexControllerStimulus(CCCForYawLeft) end
-            if desiredYaw == PropulsionRequestForYawRight then I:RequestComplexControllerStimulus(CCCForYawRight) end
+    if TypeOfAiOnTheCraft == 2 or TypeOfAiOnTheCraft == 3 then
 
-            if desiredPitch == PropulsionRequestForPitchUp then I:RequestComplexControllerStimulus(CCCForPitchUp) end
-            if desiredPitch == PropulsionRequestForPitchUp * -1 then I:RequestComplexControllerStimulus(CCCForPitchDown) end            
-        else
-            if desiredYaw == PropulsionRequestForYawRight * -1 then I:RequestComplexControllerStimulus(CCCForYawLeft) end
-            if desiredYaw == PropulsionRequestForYawRight then I:RequestComplexControllerStimulus(CCCForYawRight) end
+        if desiredYaw == PropulsionRequestForYawRight * -1 then I:RequestComplexControllerStimulus(CCCForYawLeft) end
+        if desiredYaw == PropulsionRequestForYawRight then I:RequestComplexControllerStimulus(CCCForYawRight) end
 
-            if desiredForward == PropulsionRequestWhileAvoiding then I:RequestComplexControllerStimulus(CCCWhileAvoiding) end
-            if desiredForward == PropulsionRequestToStopOrReverse then I:RequestComplexControllerStimulus(CCCToStopOrReverse) end            
-        end
+        if desiredForward == PropulsionRequestWhileAvoiding then I:RequestComplexControllerStimulus(CCCWhileAvoiding) end
+        if desiredForward == PropulsionRequestToStopOrReverse then I:RequestComplexControllerStimulus(CCCToStopOrReverse) end
+
+        if desiredPitch == PropulsionRequestForPitchUp then I:RequestComplexControllerStimulus(CCCForPitchUp) end
+        if desiredPitch == PropulsionRequestForPitchUp * -1 then I:RequestComplexControllerStimulus(CCCForPitchDown) end
+        
     end
 
     DBG(FrameCounter..": DesiredYaw = "..desiredYaw.." desiredForward: "..desiredForward.."  desiredPitch: "..desiredPitch)
@@ -838,13 +1224,13 @@ end
 
 function DoInputSanityCheck()
     local msg = ""
-    if SafeDistance < 0 then
-        SafeDistance = 10
-        msg = msg .. " SafeDistance! "
+    if CurrentSafeDistance < 0 then
+        CurrentSafeDistance = 10
+        msg = msg .. " CurrentSafeDistance! "
     end
-    if MaximumSizeOfEnemyShip < 50 then
-        MaximumSizeOfEnemyShip = 50
-        msg = msg .. " MaximumSizeOfEnemyShip! "
+    if MaximumSizeOfEnemyShips < 50 then
+        MaximumSizeOfEnemyShips = 50
+        msg = msg .. " MaximumSizeOfEnemyShips! "
     end
     if CCCForYawRight == CCCForYawLeft then
         msg = msg .. " CCCForYawRight==CCCForYawLeft - not fixed! "
@@ -859,17 +1245,38 @@ function DoInputSanityCheck()
     return msg
 end
 
+function UpdateFriendlySizes()
+    for i = 0, I:GetFriendlyCount() - 1, 1 do
+        local FriendlyInfo = I:GetFriendlyInfo(i)
+        local friendlySize = FriendlyInfo.PositiveSize - FriendlyInfo.NegativeSize + Vector3(1, 1, 1)
+        DimensionsOfFriendlies[FriendlyInfo.Id] = {
+            Id = FriendlyInfo.Id,
+            BoundingBox = friendlySize,
+            MaxSphericalHalfSize = math.max(friendlySize.x, friendlySize.y, friendlySize.z) / 2 + ExtraDistanceForBeingFriendly
+        }
+    end 
+end
+
+function UpdateCurrentSafeDistance (currentTypeOfTheCraft)
+
+    if currentTypeOfTheCraft == 1 or currentTypeOfTheCraft == 2 then
+        if IsItALandMap then
+            CurrentSafeDistance = SafeDistanceForLandUnits
+        else
+            CurrentSafeDistance = SafeDistanceForShips
+        end
+    elseif currentTypeOfTheCraft == 3 then
+        CurrentSafeDistance = SafeDistanceForPlanes
+    elseif currentTypeOfTheCraft == 4 then
+        CurrentSafeDistance = SafeDistanceForSubmarines
+    end
+    
+    
+end
 
 function StartupInitialization()
     DoInitializationOnStart = false    
     I:ClearLogs()
-
-    if IsConstructPlane then
-        EnemySphericalHalfSize = MaximumSizeOfEnemyPlane/2                                   -- Not valid for ships!
-        SafeDistance = SafeDistanceForPlanes
-    else
-        EnemySphericalHalfSize = MaximumSizeOfEnemyShip/2
-    end
 
     SetPriorityNumberAndCountFriendlies()
     
@@ -882,19 +1289,37 @@ function StartupInitialization()
     ConstructSphericalHalfSize = math.max(ConstructDimensions.x, ConstructDimensions.y, ConstructDimensions.z) / 2
 
     LastFrameConstructVelocity = I:GetVelocityVector()
+
+    UpdateFriendlySizes()
+
+  --  local msg = DoInputSanityCheck()
+
+    local constructPosition = I:GetConstructPosition()    
+    MapBorderPointX1, MapBorderPointZ1, MapBorderPointX2, MapBorderPointZ2 = FindMapBorderPoints(constructPosition.x, constructPosition.z, 20000)
+    local mapCenterX = (MapBorderPointX1 + MapBorderPointX2) / 2
+    local mapCenterZ = (MapBorderPointZ1 + MapBorderPointZ2) / 2
     
-    for i = 0, I:GetFriendlyCount() - 1, 1 do
-        local FriendlyInfo = I:GetFriendlyInfo(i)
-        local friendlySize = FriendlyInfo.PositiveSize - FriendlyInfo.NegativeSize + Vector3(1, 1, 1)
-        DimensionsOfFriendlies[FriendlyInfo.Id] = {
-            Id = FriendlyInfo.Id,
-            BoundingBox = friendlySize,
-            MaxSphericalHalfSize = math.max(friendlySize.x, friendlySize.y, friendlySize.z) / 2 + ExtraDistanceForBeingFriendly
-        }
+  --  I:LogToHud("mapCenterX: "..mapCenterX.."  mapCenterZ: "..mapCenterZ)
+    
+    CurrentTypeOfTheCraft = TypeOfTheCraft
+    HeightOfMapCenter = ( I:GetTerrainAltitudeForPosition(mapCenterX, 0, 0)
+                        + I:GetTerrainAltitudeForPosition(mapCenterX + 500, 0, mapCenterZ + 500)
+                        + I:GetTerrainAltitudeForPosition(mapCenterX + 500, 0, mapCenterZ - 500)
+                        + I:GetTerrainAltitudeForPosition(mapCenterX - 500, 0, mapCenterZ + 500)
+                        + I:GetTerrainAltitudeForPosition(mapCenterX - 500, 0, mapCenterZ - 500) ) / 5
+    if HeightOfMapCenter > MinimumTerrainAltitudeToBeLandMap then                                                        
+        IsItALandMap = true
     end
+    HeightOfMapCenter = math.max(0, HeightOfMapCenter)
 
-    local msg = DoInputSanityCheck()
+    UpdateCurrentSafeDistance (TypeOfTheCraft)
+    CurrentTypeOfTheCraft = TypeOfTheCraft
 
+    if ForceUsageOfAlgorithm ~= "Auto" then
+        CurrentAlgorithm = ForceUsageOfAlgorithm     
+    end
+    
+    
     if ShowMessageForRunningAndWarnings then
         I:LogToHud("CornBox is running on ".. I:GetBlueprintName().." (Id: ".. I:GetUniqueId().."). "..msg)        
     end
@@ -956,140 +1381,98 @@ IntegrationModeCurrentStep = 0
 
 
 function RunIntegrationTest()
-    IntegrationModeHudRepeatNumber = IntegrationTestDuration / (Mathf.Round(IntegrationTestDuration / (3*40*2))*2)
+    IntegrationModeHudRepeatNumber = (IntegrationTestDuration * 40) / (Mathf.Round((IntegrationTestDuration * 40) / (3*40*2))*2)
     IntegrationModeCycleCounter = IntegrationModeCycleCounter - NumberOfSkippedFrames
 
     if IntegrationModeCycleCounter <=0 then
         IntegrationModeCurrentStep = IntegrationModeCurrentStep + 1
-        IntegrationModeCycleCounter = IntegrationTestDuration
+        IntegrationModeCycleCounter = IntegrationTestDuration * 40
     end
                                                                                         --DesiredYaw, DesiredForward, DesiredPitch = RunIntegrationTest()
-    if IsConstructPlane then
-        if IntegrationModeCurrentStep > 16 then
-            IntegrationModeCurrentStep = 1            
-        end
-        
-        if IntegrationModeCurrentStep == 1 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Yaw right.")                
-            end
-            return PropulsionRequestForYawRight, PropulsionRequestWhileAvoiding, 0
-        elseif IntegrationModeCurrentStep == 2 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-        elseif IntegrationModeCurrentStep == 3 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Yaw left.")
-            end
-            return PropulsionRequestForYawRight * -1, PropulsionRequestWhileAvoiding, 0
-        elseif IntegrationModeCurrentStep == 4 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-        elseif IntegrationModeCurrentStep == 5 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Pitch up.")
-            end
-            return 0, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp
-        elseif IntegrationModeCurrentStep == 6 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-        elseif IntegrationModeCurrentStep == 7 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Pitch down.")
-            end
-            return 0, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp * -1
-        elseif IntegrationModeCurrentStep == 8 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-
-        elseif IntegrationModeCurrentStep == 9 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Yaw right and pitch up.")
-            end
-            return PropulsionRequestForYawRight, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp
-        elseif IntegrationModeCurrentStep == 10 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-        elseif IntegrationModeCurrentStep == 11 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Yaw right and pitch down.")
-            end
-            return PropulsionRequestForYawRight, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp * -1
-        elseif IntegrationModeCurrentStep == 12 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-
-        elseif IntegrationModeCurrentStep == 13 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Yaw left and pitch up.")
-            end
-            return PropulsionRequestForYawRight * -1, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp
-        elseif IntegrationModeCurrentStep == 14 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-        elseif IntegrationModeCurrentStep == 15 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  Yaw left and pitch down.")
-            end
-            return PropulsionRequestForYawRight * -1, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp * -1
-        elseif IntegrationModeCurrentStep == 16 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Plane.  CornBox off.")
-            end
-            return 0, 0, 0
-        end
-
+    
+    local msg = "Integration test for ["..I:GetBlueprintName().."]."
+    if IsItALandMap then
+        msg = msg.." Land map ("..HeightOfMapCenter.."m)."
     else
-        if IntegrationModeCurrentStep > 6 then
-            IntegrationModeCurrentStep = 1
-        end
+        msg = msg.." Water map."       
+    end
+
+    local currentTypeOfTheCraft = GetTypeOfUnitFromAltitude(I:GetConstructCenterOfMass())
+
+    if TypeOfTheCraft == 1 then 
+        if currentTypeOfTheCraft == 2 then msg = msg.." Type: Surface (Auto)." end
+        if currentTypeOfTheCraft == 3 then msg = msg.." Type: Plane (Auto)." end
+        if currentTypeOfTheCraft == 4 then msg = msg.." Type: Submarine (Auto)." end        
+    elseif TypeOfTheCraft == currentTypeOfTheCraft then
+        if currentTypeOfTheCraft == 2 then msg = msg.." Type: Surface." end
+        if currentTypeOfTheCraft == 3 then msg = msg.." Type: Plane." end
+        if currentTypeOfTheCraft == 4 then msg = msg.." Type: Submarine." end
+    else
+
+        if TypeOfTheCraft == 2 then msg = msg.." Type: Surface" end
+        if TypeOfTheCraft == 3 then msg = msg.." Type: Plane" end
+        if TypeOfTheCraft == 4 then msg = msg.." Type: Submarine" end
+
+        if currentTypeOfTheCraft == 2 then msg = msg..", expected: Surface!" end
+        if currentTypeOfTheCraft == 3 then msg = msg..", expected: Plane!" end
+        if currentTypeOfTheCraft == 4 then msg = msg..", expected: Submarine!" end
         
-        if IntegrationModeCurrentStep == 1 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Ship.  Forward and yaw right.")
-            end
-            return PropulsionRequestForYawRight, PropulsionRequestWhileAvoiding, 0
-        elseif IntegrationModeCurrentStep == 2 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Ship.  CornBox off.")
-            end
-            return 0, 0, 0
-        elseif IntegrationModeCurrentStep == 3 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Ship.  Forward and yaw left.")
-            end
-            return PropulsionRequestForYawRight * -1, PropulsionRequestWhileAvoiding, 0
-        elseif IntegrationModeCurrentStep == 4 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Ship.  CornBox off.")
-            end
-            return 0, 0, 0
-        elseif IntegrationModeCurrentStep == 5 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Ship.  Forward slow or stop or reverse.")
-            end
-            return 0, PropulsionRequestToStopOrReverse, 0
-        elseif IntegrationModeCurrentStep == 6 then
-            if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
-                I:LogToHud(Mathf.Round(I:GetGameTime()).. " / "..I:GetUniqueId() .." :  Integration test. Ship.  CornBox off.")
-            end
-            return 0, 0, 0            
+    end
+
+    if IntegrationModeCurrentStep > 10 then
+        IntegrationModeCurrentStep = 1
+    end
+
+    if IntegrationModeCurrentStep == 1 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." Forward and Yaw right.")
         end
-        
+        return PropulsionRequestForYawRight, PropulsionRequestWhileAvoiding, 0
+    elseif IntegrationModeCurrentStep == 2 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." CornBox off.")
+        end
+        return 0, 0, 0
+    elseif IntegrationModeCurrentStep == 3 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." Forward and Yaw left.")
+        end
+        return PropulsionRequestForYawRight * -1, PropulsionRequestWhileAvoiding, 0
+    elseif IntegrationModeCurrentStep == 4 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." CornBox off.")
+        end
+        return 0, 0, 0
+    elseif IntegrationModeCurrentStep == 5 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." Forward and Pitch up.")
+        end
+        return 0, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp
+    elseif IntegrationModeCurrentStep == 6 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." CornBox off.")
+        end
+        return 0, 0, 0
+    elseif IntegrationModeCurrentStep == 7 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." Forward and Pitch down.")
+        end
+        return 0, PropulsionRequestWhileAvoiding, PropulsionRequestForPitchUp * -1
+    elseif IntegrationModeCurrentStep == 8 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." CornBox off.")
+        end
+        return 0, 0, 0
+    elseif IntegrationModeCurrentStep == 9 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." Forward slow or stop or reverse.")
+        end
+        return 0, PropulsionRequestToStopOrReverse, 0        
+    elseif IntegrationModeCurrentStep == 10 then
+        if IntegrationModeCycleCounter % IntegrationModeHudRepeatNumber == 0 then
+            I:LogToHud(msg.." CornBox off.")
+        end
+        return 0, 0, 0
     end
     
 end
@@ -1127,11 +1510,12 @@ function Update(ILocal)
 
             if IntegrationTestDuration == 0 then
                 success, DesiredYaw, DesiredForward, DesiredPitch = pcall(DetectAndAvoidCollision)
+                --success = true  DesiredYaw, DesiredForward, DesiredPitch = DetectAndAvoidCollision()
             else
                 success = true
                 DesiredYaw, DesiredForward, DesiredPitch = RunIntegrationTest()
             end
-            --success = true  DesiredYaw, DesiredForward, DesiredPitch = DetectAndAvoidCollision()                
+                            
 
             if not success or DesiredYaw == nil or DesiredForward == nil or DesiredPitch == nil then
                 DBG("!!Error!!")
