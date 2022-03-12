@@ -8,12 +8,11 @@ Planned for the next release:
 6. Right of the way between friendlies.
 7. Try to commit to selected maneuver.
 8. Flatten vectors for ships.
-9. Exclude something by distance.
-10. Check for worldshift.
-11. Range warning
-12. FoF warning
+9. Range warning
+10. FoF warning
 
 
+2022.03.13
 v7
 - Added avoidance for map borders.
 - Added scan for map borders, based on terrain to seabed drop.
@@ -35,7 +34,9 @@ v7
 - Added ObstacleExclusionDistance. To exclude from calculations obstacles that are too far away to be relevant.
 - Collision avoidance algorithm can be set per class or permanently for the craft. Experimental.
 - PitchLimit won't apply to ships.
-
+- Integration test will print more information.
+- Added PitchUP from terrain.
+- Pitch commands assign to O/L, instead of U/J. 2D/3D control schemes merged.
 
 
 2022.01.21
