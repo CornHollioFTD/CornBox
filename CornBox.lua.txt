@@ -1044,16 +1044,12 @@ function DetectAndAvoidCollision()
         MapBorderPointX1, MapBorderPointZ1, MapBorderPointX2, MapBorderPointZ2 = FindMapBorderPoints(constructPosition.x, constructPosition.z, 20000)
     end
 
-  --  DBG("X1: "..MapBorderPointX1.." Z1: "..MapBorderPointZ1.."   X2: "..MapBorderPointX2.." Z2: "..MapBorderPointZ2)
-    --DBG("Xc:" .. Mathf.Round((MapBorderPointX1+MapBorderPointX2)/2).." Zc: "..Mathf.Round((MapBorderPointZ1+MapBorderPointZ2)/2))
-  --  DBG("Xc:" .. Mathf.Round((MapBorderPointX1+MapBorderPointX2)/2).." Zc: "..Mathf.Round((MapBorderPointZ1+MapBorderPointZ2)/2).."   X1: "..MapBorderPointX1.." Z1: "..MapBorderPointZ1.."   X2: "..MapBorderPointX2.." Z2: "..MapBorderPointZ2)
     local friendlyCount = I:GetFriendlyCount()
     local enemyCount = I:GetNumberOfTargets(0)
 
     if (friendlyCount + 1) ~= PreviousCountForFriendlies then
         SetPriorityNumberAndCountFriendlies()        
     end
-
     
     ConstructForwardsVelocityMagnitude = I:GetForwardsVelocityMagnitude()
     local newPositionsAndVectors = {}                                 
