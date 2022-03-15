@@ -55,7 +55,7 @@
             MinimumDistanceFromBorder = 500
             TimeToPredictBorderViolation = 5
 
-            ProbeAheadForTerrain = true             -- 'true' for you craft to bounce away from walls on arena or from slopes of regular terrain. 'false' to disable.
+            ProbeAheadForTerrain = false             -- 'true' for you craft to bounce away from walls on arena or from slopes of regular terrain. 'false' to disable.
             TimeToPredictTerrain = 10
             AltitudeDifferenceToPanic = -30         -- Craft will turn away if the difference between CoM and terrain ahead are this big.
                                                     -- E.g. >0 - hill/wall for tanks, <0 - safe depth for ship.
