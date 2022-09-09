@@ -49,7 +49,7 @@
 
 
 -- Map and terrain
-            DoAvoidMapBorders = true               -- Set this to 'true' if your craft will be fighting on a map with limited area. 
+            DoAvoidMapBorders = false               -- Set this to 'true' if your craft will be fighting on a map with limited area. 
                                                     -- Map will be scanned to find its borders, where terrain ends with the sharp drop to the seabed level.
                                                     -- This feature intended for Arena-style maps.
             MinimumDistanceFromBorder = 500
